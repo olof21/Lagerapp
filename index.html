@@ -1,95 +1,36 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-  
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#222222">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-
-  <link rel="icon" type="image/png" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lagerprototyp</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#222222">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      padding: 1rem;
-      background: #f5f5f5;
-      color: #222;
-    }
-
+    body { font-family: system-ui, sans-serif; margin:0; padding:1rem; background:#f5f5f5; color:#222; }
     header { margin-bottom: 1rem; }
-    h1 { font-size: 1.2rem; margin: 0 0 0.5rem 0; }
-
-    .card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.07);
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    label {
-      font-size: 0.9rem;
-      font-weight: 600;
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-
-    select, input, textarea, button {
-      width: 100%;
-      font-size: 1rem;
-      padding: 0.7rem 0.8rem;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-      margin-bottom: 0.75rem;
-      background: #fff;
-    }
-
-    button {
-      background: #222;
-      color: #fff;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-    }
-
-    .row {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    .row > div { flex: 1 1 140px; }
-
-    .results { font-size: 0.9rem; line-height: 1.4; }
-    .result-item {
-      background: #fff; border-radius: 8px; border: 1px solid #ddd;
-      padding: 0.75rem; margin-bottom: 0.5rem;
-    }
-    .result-item strong { display: block; font-size: 0.95rem; }
-    .muted { color: #666; font-size: 0.8rem; }
-    .ok { color: #0a7f2e; }
-    .err { color: #b00020; }
+    h1 { font-size:1.2rem; margin:0 0 .5rem 0; }
+    .card { background:#fff; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.07); padding:1rem; margin-bottom:1rem; }
+    label { font-size:.9rem; font-weight:600; display:block; margin-bottom:.25rem; }
+    select, input, textarea, button { width:100%; font-size:1rem; padding:.7rem .8rem; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; margin-bottom:.75rem; background:#fff; }
+    button { background:#222; color:#fff; font-weight:600; border:none; cursor:pointer; }
+    .row { display:flex; gap:.75rem; flex-wrap:wrap; }
+    .row > div { flex:1 1 140px; }
+    .results { font-size:.9rem; line-height:1.4; }
+    .result-item { background:#fff; border-radius:8px; border:1px solid #ddd; padding:.75rem; margin-bottom:.5rem; }
+    .result-item strong { display:block; font-size:.95rem; }
+    .muted { color:#666; font-size:.8rem; }
+    .ok { color:#0a7f2e; }
+    .err { color:#b00020; }
   </style>
-
-<script>
-  // Registrera service worker (krävs för offline + installation)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(() => console.log('✅ Service worker registrerad'))
-        .catch(err => console.error('SW registration failed:', err));
-    });
-  }
-</script>
-
-
 </head>
 <body>
 
@@ -101,16 +42,12 @@
 <!-- 1. Skapa pall -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">1. Skapa pall</h2>
-
   <label for="createPallIdInput">Pall-ID</label>
   <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
-
   <label for="createContentsInput">Vad finns i pallen?</label>
   <textarea id="createContentsInput" rows="3" placeholder="Rillmugg vit, Alma stol blå..."></textarea>
-
   <label for="createWhoInput">Packad av</label>
   <input id="createWhoInput" type="text" placeholder="t.ex. Aleksandra" />
-
   <button id="createSaveBtn">Spara pall</button>
   <div id="createSaveMsg" class="muted"></div>
 </section>
@@ -118,7 +55,6 @@
 <!-- 2. Tilldela pall till plats -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">2. Tilldela pall till plats</h2>
-
   <div class="row">
     <div>
       <label for="assignPallIdInput">Pall-ID</label>
@@ -129,10 +65,8 @@
       <select id="assignPlaceSelect"></select>
     </div>
   </div>
-
   <label for="assignWhoInput">Inkörd av</label>
   <input id="assignWhoInput" type="text" placeholder="t.ex. Yosef" />
-
   <button id="assignSaveBtn">Spara placering</button>
   <div id="assignSaveMsg" class="muted"></div>
 </section>
@@ -140,14 +74,12 @@
 <!-- 3. Visa vad som står på en plats -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">3. Visa innehåll på plats</h2>
-
   <div class="row">
     <div>
       <label for="inspectSelect">Plats</label>
       <select id="inspectSelect"></select>
     </div>
   </div>
-
   <button id="inspectBtn">Visa innehåll</button>
   <div id="inspectResult" class="results"></div>
 </section>
@@ -155,14 +87,12 @@
 <!-- 4. Sök efter artikel och få plats -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">4. Sök artikel → hitta plats</h2>
-
   <input id="searchInput" type="text" placeholder="Ex: Rillmugg / Alma stol" />
   <button id="searchBtn">Sök var den står</button>
-
   <div id="searchResults" class="results"></div>
 </section>
 
-<!-- 5. Snabbflytt (beta) -->
+<!-- 5. Snabbflytt (beta) — notera: ingen JS ännu i Firebase-versionen -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">5. Snabbflytt (beta)</h2>
   <div class="row">
@@ -178,311 +108,230 @@
   <label for="moveWhoInput">Flyttad av</label>
   <input id="moveWhoInput" type="text" placeholder="t.ex. Yosef" />
   <div class="row">
-    <div><button id="moveBtn">Flytta pall</button></div>
-    <div><button id="clearFromBtn">Töm 'Från'-plats</button></div>
+    <div><button id="moveBtn" disabled>Flytta pall (kommer snart)</button></div>
+    <div><button id="clearFromBtn" disabled>Töm 'Från'-plats</button></div>
   </div>
   <div id="moveMsg" class="muted"></div>
 </section>
 
-<!-- 6. Data → export/import -->
+<!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">Export/Import</h2>
   <div class="row">
-    <div><button id="exportBtn">Exportera data (JSON)</button></div>
+    <div><button id="exportBtn" disabled>Exportera data (kommer snart)</button></div>
     <div>
       <label for="importInput">Importera data (JSON-fil)</label>
-      <input id="importInput" type="file" accept="application/json" />
+      <input id="importInput" type="file" accept="application/json" disabled />
     </div>
   </div>
-  <div class="muted">Exporten innehåller både <code>pallets</code> och <code>locations</code>.</div>
+  <div class="muted">Exporten/Importen återkommer när vi kopplat molndatabas klart.</div>
 </section>
 
-<script>
-  // ---------------------------------
-  // DATASTRUKTURER + PERSISTENS
-  // ---------------------------------
+<!-- ===== Firebase + App-logik ===== -->
+<script type="module">
+  /* =========  Firebase  ========= */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+  import {
+    getFirestore, enableIndexedDbPersistence,
+    doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch
+  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-  // 72 platser (L/R * rad 1-4 * kolumn 1-3 * höjd 1-3)
+  /* 1) BYT DENNA med din egen config från Firebase-konsolen */
+  const firebaseConfig = {
+    apiKey: "BYT-MIG",
+    authDomain: "BYT-MIG.firebaseapp.com",
+    projectId: "BYT-MIG",
+    storageBucket: "BYT-MIG.appspot.com",
+    messagingSenderId: "BYT-MIG",
+    appId: "BYT-MIG"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  /* 2) Logga in anonymt (kräver att du aktiverat Anonymous i Auth) */
+  await signInAnonymously(auth).catch(console.error);
+
+  /* 3) Offline-stöd – cachea Firestore lokalt, synka när nät finns */
+  enableIndexedDbPersistence(db).catch(() => { /* ignorerar multi-tab-fel */ });
+
+  /* =========  App-logik  ========= */
   const places = [];
-  function generatePlaces() {
-    const sides = ["L","R"];
-    for (const side of sides) {
-      for (let rad=1; rad<=4; rad++) {
-        for (let col=1; col<=3; col++) {
-          for (let h=1; h<=3; h++) {
-            places.push(`${side}-R${rad}-C${col}-H${h}`);
-          }
-        }
-      }
+  (function gen(){ const S=["L","R"]; for (const side of S) for(let r=1;r<=4;r++) for(let c=1;c<=3;c++) for(let h=1;h<=3;h++) places.push(`${side}-R${r}-C${c}-H${h}`); })();
+
+  async function ensureAllPlaces(){
+    const batch = writeBatch(db); let need=false;
+    for (const pid of places){
+      const ref = doc(db,"locations",pid); const snap = await getDoc(ref);
+      if(!snap.exists()){ batch.set(ref,{pallId:"",who:"",updated:""}); need=true; }
     }
+    if(need) await batch.commit();
   }
-  generatePlaces();
+  await ensureAllPlaces();
 
-  // Läs från localStorage (annars initiera tomt)
-  function loadJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch { return fallback; }
-  }
-  function saveJSON(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
+  let pallets = {};   // { P014: {contents, who, createdDate} }
+  let locations = {}; // { placeId: {pallId, who, updated} }
 
-  let pallets = loadJSON('pallets', {});        // { P014: { contents, who, createdDate } }
-  let locations = loadJSON('locations', {});    // { placeId: { pallId, who, updated } }
-
-  // Säkerställ att alla platser finns i locations
-  places.forEach(pid => {
-    if (!locations[pid]) locations[pid] = { pallId: "", who: "", updated: "" };
+  onSnapshot(collection(db,"pallets"), (snap)=>{
+    snap.docChanges().forEach(ch=>{
+      if(ch.type==="removed") delete pallets[ch.doc.id];
+      else pallets[ch.doc.id] = ch.doc.data();
+    });
   });
 
-  function persist() {
-    saveJSON('pallets', pallets);
-    saveJSON('locations', locations);
-  }
-
-  // ---------------------------------
-  // FYLL DROPDOWNS
-  // ---------------------------------
-  const assignPlaceSelect  = document.getElementById("assignPlaceSelect");
-  const inspectSelect      = document.getElementById("inspectSelect");
-  const moveFromSelect     = document.getElementById("moveFromSelect");
-  const moveToSelect       = document.getElementById("moveToSelect");
-
-  function fillSelect(selectEl, items) {
-    selectEl.innerHTML = "";
-    items.forEach(v => {
-      const opt = document.createElement("option");
-      opt.value = v; opt.textContent = v;
-      selectEl.appendChild(opt);
+  onSnapshot(collection(db,"locations"), (snap)=>{
+    snap.docChanges().forEach(ch=>{
+      if(ch.type==="removed") delete locations[ch.doc.id];
+      else locations[ch.doc.id] = ch.doc.data();
     });
-  }
-  function fillAllDropdowns() {
-    fillSelect(assignPlaceSelect, places);
-    fillSelect(inspectSelect, places);
-    fillSelect(moveFromSelect, places);
-    fillSelect(moveToSelect, places);
-  }
-  fillAllDropdowns();
+  });
 
-  // ---------------------------------
-  // 1. SKAPA PALL
-  // ---------------------------------
+  const assignPlaceSelect = document.getElementById("assignPlaceSelect");
+  const inspectSelect     = document.getElementById("inspectSelect");
+  const moveFromSelect    = document.getElementById("moveFromSelect");
+  const moveToSelect      = document.getElementById("moveToSelect");
+
+  function fillSelect(el, arr){ if(!el) return; el.innerHTML=""; arr.forEach(v=>{const o=document.createElement("option"); o.value=v; o.textContent=v; el.appendChild(o);}); }
+  fillSelect(assignPlaceSelect, places);
+  fillSelect(inspectSelect, places);
+  fillSelect(moveFromSelect, places);
+  fillSelect(moveToSelect, places);
+
+  const today = () => new Date().toISOString().split("T")[0];
+  const setMsg = (el, txt, cls="muted") => { if(el){ el.textContent=txt; el.className=cls; } };
+
+  // 1) Skapa pall
   const createPallIdInput = document.getElementById("createPallIdInput");
   const createContentsInput = document.getElementById("createContentsInput");
   const createWhoInput = document.getElementById("createWhoInput");
   const createSaveBtn = document.getElementById("createSaveBtn");
   const createSaveMsg = document.getElementById("createSaveMsg");
 
-  createSaveBtn.addEventListener("click", () => {
-    createSaveMsg.textContent = "";
-    const pallId = createPallIdInput.value.trim();
+  createSaveBtn?.addEventListener("click", async () => {
+    setMsg(createSaveMsg,"");
+    const id = createPallIdInput.value.trim();
     const contents = createContentsInput.value.trim();
     const who = createWhoInput.value.trim();
+    if (!id)       return setMsg(createSaveMsg,"❌ Du måste ange Pall-ID.","muted err");
+    if (!contents) return setMsg(createSaveMsg,"❌ Du måste ange innehåll.","muted err");
 
-    if (!pallId) { createSaveMsg.textContent = "❌ Du måste ange Pall-ID."; createSaveMsg.className="muted err"; return; }
-    if (!contents) { createSaveMsg.textContent = "❌ Du måste ange innehåll."; createSaveMsg.className="muted err"; return; }
-    if (pallets[pallId]) { createSaveMsg.textContent = "❌ Pall-ID finns redan."; createSaveMsg.className="muted err"; return; }
+    const ref = doc(db,"pallets",id);
+    if ((await getDoc(ref)).exists()) return setMsg(createSaveMsg,"❌ Pall-ID finns redan.","muted err");
 
-    const dateStr = new Date().toISOString().split("T")[0];
-
-    pallets[pallId] = { contents, who, createdDate: dateStr };
-    persist();
-
-    createSaveMsg.textContent = `✅ Pall ${pallId} skapad (${dateStr}).`;
-    createSaveMsg.className="muted ok";
-    // Nollställ fält (frivilligt)
-    // createPallIdInput.value = ""; createContentsInput.value=""; createWhoInput.value="";
+    await setDoc(ref,{ contents, who, createdDate: today() });
+    setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "muted ok");
   });
 
-  // ---------------------------------
-  // 2. TILLDELA PALL TILL PLATS
-  // ---------------------------------
+  // 2) Tilldela pall till plats
   const assignPallIdInput = document.getElementById("assignPallIdInput");
   const assignWhoInput = document.getElementById("assignWhoInput");
   const assignSaveBtn = document.getElementById("assignSaveBtn");
   const assignSaveMsg = document.getElementById("assignSaveMsg");
 
-  assignSaveBtn.addEventListener("click", () => {
-    assignSaveMsg.textContent = "";
+  assignSaveBtn?.addEventListener("click", async () => {
+    setMsg(assignSaveMsg,"");
     const pallId = assignPallIdInput.value.trim();
     const placeId = assignPlaceSelect.value;
     const who = assignWhoInput.value.trim();
+    if (!pallId) return setMsg(assignSaveMsg,"❌ Du måste ange Pall-ID.","muted err");
 
-    if (!pallId) { assignSaveMsg.textContent = "❌ Du måste ange Pall-ID."; assignSaveMsg.className="muted err"; return; }
-    if (!pallets[pallId]) { assignSaveMsg.textContent = "❌ Det Pall-ID:t finns inte. Skapa pallen först."; assignSaveMsg.className="muted err"; return; }
+    const pSnap = await getDoc(doc(db,"pallets",pallId));
+    if (!pSnap.exists()) return setMsg(assignSaveMsg,"❌ Det Pall-ID:t finns inte. Skapa pallen först.","muted err");
 
-    const dateStr = new Date().toISOString().split("T")[0];
+    const old = await getDoc(doc(db,"locations",placeId));
+    const replaced = old.exists() && old.data().pallId ? ` (ersatte ${old.data().pallId})` : "";
 
-    // Om platsen redan har en pall, skriv över
-    const replaced = locations[placeId]?.pallId ? ` (ersatte ${locations[placeId].pallId})` : "";
-
-    locations[placeId] = { pallId, who, updated: dateStr };
-    persist();
-
-    assignSaveMsg.textContent = `✅ Plats ${placeId} har nu pall ${pallId} (${dateStr})${replaced}.`;
-    assignSaveMsg.className="muted ok";
+    await setDoc(doc(db,"locations",placeId), { pallId, who, updated: today() });
+    setMsg(assignSaveMsg, `✅ Plats ${placeId} har nu pall ${pallId}.${replaced}`, "muted ok");
   });
 
-  // ---------------------------------
-  // 3. VISA INNEHÅLL PÅ EN PLATS
-  // ---------------------------------
+  // 3) Visa innehåll på plats
   const inspectBtn = document.getElementById("inspectBtn");
   const inspectResult = document.getElementById("inspectResult");
 
-  inspectBtn.addEventListener("click", () => {
+  inspectBtn?.addEventListener("click", async () => {
     const placeId = inspectSelect.value;
-    const locInfo = locations[placeId];
-
-    if (!locInfo || !locInfo.pallId) {
-      inspectResult.innerHTML = `
-        <div class="result-item">
-          <strong>${placeId}</strong>
-          <div class="muted">Ingen pall registrerad här.</div>
-        </div>`;
+    const loc = locations[placeId];
+    if (!loc || !loc.pallId) {
+      inspectResult.innerHTML = `<div class="result-item"><strong>${placeId}</strong><div class="muted">Ingen pall registrerad här.</div></div>`;
       return;
     }
-
-    const pallId = locInfo.pallId;
-    const pallInfo = pallets[pallId] || {};
-
+    const p = pallets[loc.pallId] || {};
     inspectResult.innerHTML = `
       <div class="result-item">
         <strong>${placeId}</strong>
-        <div>Pall-ID: ${pallId}</div>
-        <div>Innehåll: ${pallInfo.contents || "-"}</div>
+        <div>Pall-ID: ${loc.pallId}</div>
+        <div>Innehåll: ${p.contents || "-"}</div>
         <div class="muted">
-          Packad av ${pallInfo.who || "okänd"} ${pallInfo.createdDate ? "den " + pallInfo.createdDate : ""}<br/>
-          Inkörd av ${locInfo.who || "okänd"} ${locInfo.updated ? "den " + locInfo.updated : ""}
+          Packad av ${p.who || "okänd"} ${p.createdDate ? "den " + p.createdDate : ""}<br/>
+          Inkörd av ${loc.who || "okänd"} ${loc.updated ? "den " + loc.updated : ""}
         </div>
       </div>`;
   });
 
-  // ---------------------------------
-  // 4. SÖK EFTER ARTIKEL → VISA VAR DEN STÅR
-  // ---------------------------------
+  // 4) Sök
   const searchBtn = document.getElementById("searchBtn");
   const searchInput = document.getElementById("searchInput");
   const searchResults = document.getElementById("searchResults");
 
-  searchBtn.addEventListener("click", () => {
-    const q = searchInput.value.trim().toLowerCase();
+  searchBtn?.addEventListener("click", () => {
+    const q = (searchInput.value||"").trim().toLowerCase();
     if (!q) { searchResults.innerHTML = `<div class="muted">Skriv något att söka på.</div>`; return; }
 
-    // hitta alla pallar vars contents matchar
-    const matchingPalletIds = Object.entries(pallets)
-      .filter(([id, info]) => (info.contents || "").toLowerCase().includes(q))
+    const matching = Object.entries(pallets)
+      .filter(([id, info]) => (info?.contents||"").toLowerCase().includes(q))
       .map(([id]) => id);
 
-    // hitta var de står
     const hits = [];
-    for (const [placeId, locInfo] of Object.entries(locations)) {
-      if (matchingPalletIds.includes(locInfo.pallId)) {
-        const p = pallets[locInfo.pallId] || {};
+    for (const [placeId, loc] of Object.entries(locations)) {
+      if (matching.includes(loc.pallId)) {
+        const p = pallets[loc.pallId] || {};
         hits.push({
-          placeId, pallId: locInfo.pallId,
-          contents: p.contents, packedBy: p.who, packedDate: p.createdDate,
-          storedBy: locInfo.who, storedDate: locInfo.updated
+          placeId, pallId: loc.pallId, contents: p.contents,
+          packedBy: p.who, packedDate: p.createdDate,
+          storedBy: loc.who, storedDate: loc.updated
         });
       }
     }
 
-    if (hits.length === 0) {
-      searchResults.innerHTML = `<div class="muted">Inget hittades för "${q}".</div>`;
-      return;
-    }
+    if (!hits.length) { searchResults.innerHTML = `<div class="muted">Inget hittades för "${q}".</div>`; return; }
 
-    searchResults.innerHTML = hits.map(hit => `
+    searchResults.innerHTML = hits.map(h => `
       <div class="result-item">
-        <strong>${hit.placeId}</strong>
-        <div>Pall-ID: ${hit.pallId}</div>
-        <div>Innehåll: ${hit.contents}</div>
+        <strong>${h.placeId}</strong>
+        <div>Pall-ID: ${h.pallId}</div>
+        <div>Innehåll: ${h.contents}</div>
         <div class="muted">
-          Packad av ${hit.packedBy || "okänd"} ${hit.packedDate ? "den " + hit.packedDate : ""}<br/>
-          Inkörd av ${hit.storedBy || "okänd"} ${hit.storedDate ? "den " + hit.storedDate : ""}
+          Packad av ${h.packedBy || "okänd"} ${h.packedDate ? "den " + h.packedDate : ""}<br/>
+          Inkörd av ${h.storedBy || "okänd"} ${h.storedDate ? "den " + h.storedDate : ""}
         </div>
-      </div>
-    `).join("");
+      </div>`).join("");
   });
+</script>
 
-  // ---------------------------------
-  // 5. SNABBFLYTT (BETA)
-  // ---------------------------------
-  const moveBtn = document.getElementById("moveBtn");
-  const clearFromBtn = document.getElementById("clearFromBtn");
-  const moveMsg = document.getElementById("moveMsg");
-  const moveWhoInput = document.getElementById("moveWhoInput");
+<!-- ===== Service Worker (en gång, med uppdateringsflöde) ===== -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              const ok = confirm('Ny version av appen finns. Uppdatera nu?');
+              if (ok) sw.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      });
 
-  moveBtn.addEventListener("click", () => {
-    moveMsg.textContent = "";
-    const fromId = moveFromSelect.value;
-    const toId = moveToSelect.value;
-    const who = moveWhoInput.value.trim();
-    if (fromId === toId) { moveMsg.textContent = "❌ Välj olika platser."; moveMsg.className="muted err"; return; }
-
-    const from = locations[fromId];
-    if (!from || !from.pallId) { moveMsg.textContent = `❌ Ingen pall på ${fromId}.`; moveMsg.className="muted err"; return; }
-
-    const pallId = from.pallId;
-    const replaced = locations[toId]?.pallId ? ` (ersatte ${locations[toId].pallId})` : "";
-    const dateStr = new Date().toISOString().split("T")[0];
-
-    // Flytta
-    locations[toId] = { pallId, who, updated: dateStr };
-    locations[fromId] = { pallId: "", who: "", updated: dateStr };
-    persist();
-
-    moveMsg.textContent = `✅ Flyttade ${pallId} från ${fromId} → ${toId}${replaced}.`;
-    moveMsg.className="muted ok";
-  });
-
-  clearFromBtn.addEventListener("click", () => {
-    moveMsg.textContent = "";
-    const fromId = moveFromSelect.value;
-    if (!fromId) return;
-    const had = locations[fromId]?.pallId;
-    locations[fromId] = { pallId: "", who: "", updated: new Date().toISOString().split("T")[0] };
-    persist();
-    moveMsg.textContent = had ? `✅ Tömde ${fromId} (tog bort ${had}).` : `ℹ️ ${fromId} var redan tom.`;
-    moveMsg.className = had ? "muted ok" : "muted";
-  });
-
-  // ---------------------------------
-  // 6. Export / Import (JSON)
-  // ---------------------------------
-  const exportBtn = document.getElementById("exportBtn");
-  const importInput = document.getElementById("importInput");
-
-  exportBtn.addEventListener("click", () => {
-    const data = { pallets, locations, exportedAt: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "lagerdata.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  importInput.addEventListener("change", async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const json = JSON.parse(text);
-      if (!json.pallets || !json.locations) throw new Error("Saknar pallets/locations");
-      pallets = json.pallets;
-      locations = json.locations;
-      // säkerställ alla platser finns
-      places.forEach(pid => { if (!locations[pid]) locations[pid] = { pallId: "", who: "", updated: "" }; });
-      persist();
-      alert("✅ Import klar.");
-    } catch (err) {
-      alert("❌ Import misslyckades: " + (err?.message || err));
-    } finally {
-      importInput.value = "";
-    }
-  });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    });
+  }
 </script>
 
 </body>
