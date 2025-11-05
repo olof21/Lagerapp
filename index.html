@@ -129,25 +129,28 @@
 
 <!-- ===== Firebase + App-logik ===== -->
 <script type="module">
-  /* =========  Firebase  ========= */
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-  import {
-    getFirestore, enableIndexedDbPersistence,
-    doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+ // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-  /* 1) BYT DENNA med din egen config från Firebase-konsolen */
-  const firebaseConfig = {
-    apiKey: "BYT-MIG",
-    authDomain: "BYT-MIG.firebaseapp.com",
-    projectId: "BYT-MIG",
-    storageBucket: "BYT-MIG.appspot.com",
-    messagingSenderId: "BYT-MIG",
-    appId: "BYT-MIG"
-  };
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyC_lEAQE6m-LhuxWfbWVlZ7ag_RQHB_ZbQ",
+  authDomain: "lagervy---databas.firebaseapp.com",
+  projectId: "lagervy---databas",
+  storageBucket: "lagervy---databas.firebasestorage.app",
+  messagingSenderId: "389445759047",
+  appId: "1:389445759047:web:4ec5c41980d6f7939a4162",
+  measurementId: "G-MLL7N1SDBB"
+};
 
-  const app = initializeApp(firebaseConfig);
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
   const auth = getAuth(app);
   const db   = getFirestore(app);
 
