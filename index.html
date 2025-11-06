@@ -53,14 +53,10 @@
 
   <label for="createPallIdInput">Pall-ID</label>
   <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
-
   <label for="createContentsInput">Vad finns i pallen?</label>
   <textarea id="createContentsInput" rows="3" placeholder="Rillmugg vit, Alma stol blå..."></textarea>
-
   <label for="createWhoInput">Packad av</label>
   <input id="createWhoInput" type="text" placeholder="t.ex. Aleksandra" />
-
->>>>>>> 28823de (Initial PWA deploy)
   <button id="createSaveBtn">Spara pall</button>
   <div id="createSaveMsg" class="muted"></div>
 </section>
@@ -68,10 +64,6 @@
 <!-- 2. Tilldela pall till plats -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">2. Tilldela pall till plats</h2>
-<<<<<<< HEAD
-=======
-
->>>>>>> 28823de (Initial PWA deploy)
   <div class="row">
     <div>
       <label for="assignPallIdInput">Pall-ID</label>
@@ -82,15 +74,8 @@
       <select id="assignPlaceSelect"></select>
     </div>
   </div>
-<<<<<<< HEAD
   <label for="assignWhoInput">Inkörd av</label>
   <input id="assignWhoInput" type="text" placeholder="t.ex. Yosef" />
-=======
-
-  <label for="assignWhoInput">Inkörd av</label>
-  <input id="assignWhoInput" type="text" placeholder="t.ex. Yosef" />
-
->>>>>>> 28823de (Initial PWA deploy)
   <button id="assignSaveBtn">Spara placering</button>
   <div id="assignSaveMsg" class="muted"></div>
 </section>
@@ -98,10 +83,6 @@
 <!-- 3. Visa vad som står på en plats -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">3. Visa innehåll på plats</h2>
-<<<<<<< HEAD
-=======
-
->>>>>>> 28823de (Initial PWA deploy)
   <div class="row">
     <div>
       <label for="inspectSelect">Plats</label>
@@ -121,6 +102,7 @@
 </section>
 
 <!-- 5. Snabbflytt (beta) — notera: ingen JS ännu i Firebase-versionen -->
+<!-- 5. Snabbflytt (beta) — notera: ingen JS ännu i Firebase-versionen -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">5. Snabbflytt (beta)</h2>
   <div class="row">
@@ -136,8 +118,12 @@
   <label for="moveWhoInput">Flyttad av</label>
   <input id="moveWhoInput" type="text" placeholder="t.ex. Yosef" />
 
+
   <div id="moveMsg" class="muted"></div>
 </section>
+
+<!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
+
 
 <!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
 
@@ -151,8 +137,56 @@
   <input id="importInput" type="file" accept="application/json" />
 
   <div class="muted">Export/Import hämtar & återställer lagret.</div>
+
+  <button id="exportBtn">Exportera data (JSON)</button>
+
+  <label for="importInput">Importera data (JSON-fil)</label>
+  <input id="importInput" type="file" accept="application/json" />
+
+  <div class="muted">Export/Import hämtar & återställer lagret.</div>
 </section>
 
+<!-- ===== Firebase + App-logik ===== -->
+<script type="module">
+ // Import the functions you need from the SDKs you need
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+ import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+ import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+ import {
+  getFirestore, enableIndexedDbPersistence,
+  doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch, runTransaction
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyC_lEAQE6m-LhuxWfbWVlZ7ag_RQHB_ZbQ",
+  authDomain: "lagervy---databas.firebaseapp.com",
+  projectId: "lagervy---databas",
+  storageBucket: "lagervy---databas.firebasestorage.app",
+  messagingSenderId: "389445759047",
+  appId: "1:389445759047:web:4ec5c41980d6f7939a4162",
+  measurementId: "G-MLL7N1SDBB"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  /* 2) Logga in anonymt (kräver att du aktiverat Anonymous i Auth) */
+  await signInAnonymously(auth).catch(console.error);
+
+  /* 3) Offline-stöd – cachea Firestore lokalt, synka när nät finns */
+  enableIndexedDbPersistence(db).catch(() => { /* ignorerar multi-tab-fel */ });
+
+  /* =========  App-logik  ========= */
 <!-- ===== Firebase + App-logik ===== -->
 <script type="module">
  // Import the functions you need from the SDKs you need
@@ -215,8 +249,47 @@ const analytics = getAnalytics(app);
       if(ch.type==="removed") delete pallets[ch.doc.id];
       else pallets[ch.doc.id] = ch.doc.data();
     });
+  (function gen(){ const S=["L","R"]; for (const side of S) for(let r=1;r<=4;r++) for(let c=1;c<=3;c++) for(let h=1;h<=3;h++) places.push(`${side}-R${r}-C${c}-H${h}`); })();
+
+  async function ensureAllPlaces(){
+    const batch = writeBatch(db); let need=false;
+    for (const pid of places){
+      const ref = doc(db,"locations",pid); const snap = await getDoc(ref);
+      if(!snap.exists()){ batch.set(ref,{pallId:"",who:"",updated:""}); need=true; }
+    }
+    if(need) await batch.commit();
+  }
+  await ensureAllPlaces();
+
+  let pallets = {};   // { P014: {contents, who, createdDate} }
+  let locations = {}; // { placeId: {pallId, who, updated} }
+
+  onSnapshot(collection(db,"pallets"), (snap)=>{
+    snap.docChanges().forEach(ch=>{
+      if(ch.type==="removed") delete pallets[ch.doc.id];
+      else pallets[ch.doc.id] = ch.doc.data();
+    });
   });
 
+  onSnapshot(collection(db,"locations"), (snap)=>{
+  snap.docChanges().forEach(ch=>{
+    if (ch.type==="removed") delete locations[ch.doc.id];
+    else locations[ch.doc.id] = ch.doc.data();
+  });
+  refreshPlaceOptionLabels(); // <= lägg till detta
+});
+
+  function refreshPlaceOptionLabels() {
+  // Bygger "L-R1-C1-H1  —  (ledig)" eller "… — P014"
+  const label = (pid) => {
+    const loc = locations[pid];
+    const suffix = (loc && loc.pallId) ? `— ${loc.pallId}` : "— (ledig)";
+    return `${pid} ${suffix}`;
+  };
+
+  const rebuild = (selectEl) => {
+    if (!selectEl) return;
+    const current = selectEl.value;
   onSnapshot(collection(db,"locations"), (snap)=>{
   snap.docChanges().forEach(ch=>{
     if (ch.type==="removed") delete locations[ch.doc.id];
@@ -262,11 +335,10 @@ const moveMsg        = document.getElementById("moveMsg");
 function today(){ return new Date().toISOString().split("T")[0]; }
 function setMsg(el, t, cls="muted"){ if(el){ el.textContent=t; el.className=cls; } }
 
-<div class="row">
-  <div><button id="moveBtn">Flytta pall</button></div>
-  <div><button id="clearFromBtn">Töm 'Från'-plats</button></div>
-</div>
-  
+// Knapparna kan vara disabled i din HTML – ta bort disabled där, eller gör så här:
+moveBtn?.removeAttribute("disabled");
+clearFromBtn?.removeAttribute("disabled");
+
 /** Flytta pall från A -> B atomärt */
 moveBtn?.addEventListener("click", async () => {
   setMsg(moveMsg, "");
@@ -344,6 +416,9 @@ clearFromBtn?.addEventListener("click", async () => {
   createSaveBtn?.addEventListener("click", async () => {
     setMsg(createSaveMsg,"");
     const id = createPallIdInput.value.trim();
+  createSaveBtn?.addEventListener("click", async () => {
+    setMsg(createSaveMsg,"");
+    const id = createPallIdInput.value.trim();
     const contents = createContentsInput.value.trim();
     const who = createWhoInput.value.trim();
     if (!id)       return setMsg(createSaveMsg,"❌ Du måste ange Pall-ID.","muted err");
@@ -351,7 +426,17 @@ clearFromBtn?.addEventListener("click", async () => {
 
     const ref = doc(db,"pallets",id);
     if ((await getDoc(ref)).exists()) return setMsg(createSaveMsg,"❌ Pall-ID finns redan.","muted err");
+    if (!id)       return setMsg(createSaveMsg,"❌ Du måste ange Pall-ID.","muted err");
+    if (!contents) return setMsg(createSaveMsg,"❌ Du måste ange innehåll.","muted err");
 
+    const ref = doc(db,"pallets",id);
+    if ((await getDoc(ref)).exists()) return setMsg(createSaveMsg,"❌ Pall-ID finns redan.","muted err");
+
+    await setDoc(ref,{ contents, who, createdDate: today() });
+    setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "muted ok");
+  });
+
+  // 2) Tilldela pall till plats
     await setDoc(ref,{ contents, who, createdDate: today() });
     setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "muted ok");
   });
@@ -364,9 +449,18 @@ clearFromBtn?.addEventListener("click", async () => {
 
   assignSaveBtn?.addEventListener("click", async () => {
     setMsg(assignSaveMsg,"");
+  assignSaveBtn?.addEventListener("click", async () => {
+    setMsg(assignSaveMsg,"");
     const pallId = assignPallIdInput.value.trim();
     const placeId = assignPlaceSelect.value;
     const who = assignWhoInput.value.trim();
+    if (!pallId) return setMsg(assignSaveMsg,"❌ Du måste ange Pall-ID.","muted err");
+
+    const pSnap = await getDoc(doc(db,"pallets",pallId));
+    if (!pSnap.exists()) return setMsg(assignSaveMsg,"❌ Det Pall-ID:t finns inte. Skapa pallen först.","muted err");
+
+    const old = await getDoc(doc(db,"locations",placeId));
+    const replaced = old.exists() && old.data().pallId ? ` (ersatte ${old.data().pallId})` : "";
     if (!pallId) return setMsg(assignSaveMsg,"❌ Du måste ange Pall-ID.","muted err");
 
     const pSnap = await getDoc(doc(db,"pallets",pallId));

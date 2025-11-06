@@ -31,4 +31,13 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request)
       .then(response => response || fetch(event.request))
   );
+
+  self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate',  () => self.clients.claim());
+
+// valfritt: ta emot kommando från sidan
+self.addEventListener('message', (e) => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 });

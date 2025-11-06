@@ -2,7 +2,8 @@ lagerapp/
 │
 ├── index.html                ← din HTML (den du har nu)
 ├── manifest.webmanifest      ← info om appen (namn, ikon, start-url)
-├── service-worker.js         ← cachen för offline-läge
+├── service-worker.js
+├── vercel.json         ← cachen för offline-läge
 └── icons/
     ├── icon-192.png
     └── icon-512.png
