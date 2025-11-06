@@ -107,31 +107,36 @@
   </div>
   <label for="moveWhoInput">Flyttad av</label>
   <input id="moveWhoInput" type="text" placeholder="t.ex. Yosef" />
-  <div class="row">
-    <div><button id="moveBtn" disabled>Flytta pall (kommer snart)</button></div>
-    <div><button id="clearFromBtn" disabled>Töm 'Från'-plats</button></div>
-  </div>
+
   <div id="moveMsg" class="muted"></div>
 </section>
 
 <!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
+
+
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">Export/Import</h2>
-  <div class="row">
-    <div><button id="exportBtn" disabled>Exportera data (kommer snart)</button></div>
-    <div>
-      <label for="importInput">Importera data (JSON-fil)</label>
-      <input id="importInput" type="file" accept="application/json" disabled />
-    </div>
-  </div>
-  <div class="muted">Exporten/Importen återkommer när vi kopplat molndatabas klart.</div>
+
+  <button id="exportBtn">Exportera data (JSON)</button>
+
+  <label for="importInput">Importera data (JSON-fil)</label>
+  <input id="importInput" type="file" accept="application/json" />
+
+  <div class="muted">Export/Import hämtar & återställer lagret.</div>
 </section>
 
 <!-- ===== Firebase + App-logik ===== -->
 <script type="module">
  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+ import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+ import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+ import {
+  getFirestore, enableIndexedDbPersistence,
+  doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch, runTransaction
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -185,11 +190,106 @@ const analytics = getAnalytics(app);
   });
 
   onSnapshot(collection(db,"locations"), (snap)=>{
-    snap.docChanges().forEach(ch=>{
-      if(ch.type==="removed") delete locations[ch.doc.id];
-      else locations[ch.doc.id] = ch.doc.data();
-    });
+  snap.docChanges().forEach(ch=>{
+    if (ch.type==="removed") delete locations[ch.doc.id];
+    else locations[ch.doc.id] = ch.doc.data();
   });
+  refreshPlaceOptionLabels(); // <= lägg till detta
+});
+
+  function refreshPlaceOptionLabels() {
+  // Bygger "L-R1-C1-H1  —  (ledig)" eller "… — P014"
+  const label = (pid) => {
+    const loc = locations[pid];
+    const suffix = (loc && loc.pallId) ? `— ${loc.pallId}` : "— (ledig)";
+    return `${pid} ${suffix}`;
+  };
+
+  const rebuild = (selectEl) => {
+    if (!selectEl) return;
+    const current = selectEl.value;
+    selectEl.innerHTML = "";
+    places.forEach(pid => {
+      const o = document.createElement("option");
+      o.value = pid;
+      o.textContent = label(pid);
+      selectEl.appendChild(o);
+    });
+    // försök behålla tidigare val
+    if (current) selectEl.value = current;
+  };
+
+  rebuild(assignPlaceSelect);
+  rebuild(inspectSelect);
+  rebuild(moveFromSelect);
+  rebuild(moveToSelect);
+}
+const moveFromSelect = document.getElementById("moveFromSelect");
+const moveToSelect   = document.getElementById("moveToSelect");
+const moveWhoInput   = document.getElementById("moveWhoInput");
+const moveBtn        = document.getElementById("moveBtn");
+const clearFromBtn   = document.getElementById("clearFromBtn");
+const moveMsg        = document.getElementById("moveMsg");
+
+function today(){ return new Date().toISOString().split("T")[0]; }
+function setMsg(el, t, cls="muted"){ if(el){ el.textContent=t; el.className=cls; } }
+
+// Knapparna kan vara disabled i din HTML – ta bort disabled där, eller gör så här:
+moveBtn?.removeAttribute("disabled");
+clearFromBtn?.removeAttribute("disabled");
+
+/** Flytta pall från A -> B atomärt */
+moveBtn?.addEventListener("click", async () => {
+  setMsg(moveMsg, "");
+  const fromId = moveFromSelect?.value;
+  const toId   = moveToSelect?.value;
+  const who    = (moveWhoInput?.value || "").trim();
+
+  if (!fromId || !toId) return setMsg(moveMsg, "❌ Välj både 'Från' och 'Till'.", "muted err");
+  if (fromId === toId)  return setMsg(moveMsg, "❌ Samma plats.", "muted err");
+
+  try {
+    await runTransaction(db, async (tx) => {
+      const fromRef = doc(db,"locations",fromId);
+      const toRef   = doc(db,"locations",toId);
+      const fromSnap = await tx.get(fromRef);
+      const toSnap   = await tx.get(toRef);
+
+      const fromData = fromSnap.exists() ? fromSnap.data() : { pallId:"" };
+      const toData   = toSnap.exists()   ? toSnap.data()   : { pallId:"" };
+
+      if (!fromData.pallId) throw new Error(`Ingen pall på ${fromId}.`);
+      if (toData.pallId)    throw new Error(`Till-platsen ${toId} är upptagen (${toData.pallId}).`);
+
+      const pallId = fromData.pallId;
+      tx.set(fromRef, { pallId:"", who: who || fromData.who || "", updated: today() });
+      tx.set(toRef,   { pallId,    who: who || toData.who   || "", updated: today() });
+    });
+
+    setMsg(moveMsg, `✅ Flytt klar: ${moveFromSelect.value} → ${moveToSelect.value}`, "ok");
+  } catch (e) {
+    setMsg(moveMsg, `❌ ${e.message || e}`, "muted err");
+  }
+});
+
+/** Töm 'Från'-platsen */
+clearFromBtn?.addEventListener("click", async () => {
+  setMsg(moveMsg, "");
+  const fromId = moveFromSelect?.value;
+  const who    = (moveWhoInput?.value || "").trim();
+  if (!fromId) return setMsg(moveMsg, "❌ Välj 'Från'-plats.", "muted err");
+
+  try {
+    const ref = doc(db,"locations",fromId);
+    const snap = await getDoc(ref);
+    const had = snap.exists() && snap.data().pallId;
+    await setDoc(ref, { pallId:"", who: who || (snap.data()?.who||""), updated: today() });
+    setMsg(moveMsg, had ? `🧹 Tömde ${fromId}.` : `ℹ️ ${fromId} var redan tom.`, "muted");
+  } catch (e) {
+    setMsg(moveMsg, `❌ ${e.message || e}`, "muted err");
+  }
+});
+
 
   const assignPlaceSelect = document.getElementById("assignPlaceSelect");
   const inspectSelect     = document.getElementById("inspectSelect");
@@ -201,8 +301,8 @@ const analytics = getAnalytics(app);
   fillSelect(inspectSelect, places);
   fillSelect(moveFromSelect, places);
   fillSelect(moveToSelect, places);
-
-  const today = () => new Date().toISOString().split("T")[0];
+  refreshPlaceOptionLabels(); // första gångens etiketter
+ 
   const setMsg = (el, txt, cls="muted") => { if(el){ el.textContent=txt; el.className=cls; } };
 
   // 1) Skapa pall
@@ -312,6 +412,82 @@ const analytics = getAnalytics(app);
         </div>
       </div>`).join("");
   });
+
+  //EXPORT//
+  const exportBtn = document.getElementById("exportBtn");
+exportBtn?.removeAttribute("disabled");
+
+exportBtn?.addEventListener("click", async () => {
+  setMsg(moveMsg, "");
+  try {
+    const [palSnap, locSnap] = await Promise.all([
+      getDocs(collection(db,"pallets")),
+      getDocs(collection(db,"locations"))
+    ]);
+    const palletsOut = {};
+    palSnap.forEach(d => palletsOut[d.id] = d.data());
+    const locationsOut = {};
+    locSnap.forEach(d => locationsOut[d.id] = d.data());
+
+    const payload = { exportedAt: new Date().toISOString(), pallets: palletsOut, locations: locationsOut };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const d = new Date().toISOString().split("T")[0];
+    a.download = `lagerapp-backup-${d}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    setMsg(moveMsg, `❌ Export misslyckades: ${e.message||e}`, "muted err");
+  }
+});
+
+//IMPORT//
+const importInput = document.getElementById("importInput");
+importInput?.removeAttribute("disabled");
+
+importInput?.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  setMsg(moveMsg, "⏳ Importerar…");
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    const palletsIn = data.pallets || {};
+    const locationsIn = data.locations || {};
+
+    // Firestore batch limit: 500 writes/batch → vi chunkar
+    const chunks = [];
+    const writes = [];
+
+    for (const [id, val] of Object.entries(palletsIn)) {
+      writes.push({ col:"pallets", id, val });
+    }
+    for (const [id, val] of Object.entries(locationsIn)) {
+      writes.push({ col:"locations", id, val });
+    }
+
+    const BATCH_LIMIT = 400;
+    for (let i=0; i<writes.length; i+=BATCH_LIMIT) {
+      chunks.push(writes.slice(i, i+BATCH_LIMIT));
+    }
+
+    for (const chunk of chunks) {
+      const batch = writeBatch(db);
+      chunk.forEach(w => {
+        batch.set(doc(db, w.col, w.id), w.val);
+      });
+      await batch.commit();
+    }
+
+    setMsg(moveMsg, `✅ Import klar: ${Object.keys(palletsIn).length} pallar, ${Object.keys(locationsIn).length} platser.`, "ok");
+    e.target.value = ""; // nollställ
+  } catch (err) {
+    setMsg(moveMsg, `❌ Import misslyckades: ${err.message||err}`, "muted err");
+  }
+});
+
 </script>
 
 <!-- ===== Service Worker (en gång, med uppdateringsflöde) ===== -->
