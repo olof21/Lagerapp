@@ -234,10 +234,11 @@ const moveMsg        = document.getElementById("moveMsg");
 function today(){ return new Date().toISOString().split("T")[0]; }
 function setMsg(el, t, cls="muted"){ if(el){ el.textContent=t; el.className=cls; } }
 
-// Knapparna kan vara disabled i din HTML – ta bort disabled där, eller gör så här:
-moveBtn?.removeAttribute("disabled");
-clearFromBtn?.removeAttribute("disabled");
-
+<div class="row">
+  <div><button id="moveBtn">Flytta pall</button></div>
+  <div><button id="clearFromBtn">Töm 'Från'-plats</button></div>
+</div>
+  
 /** Flytta pall från A -> B atomärt */
 moveBtn?.addEventListener("click", async () => {
   setMsg(moveMsg, "");
