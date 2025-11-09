@@ -221,18 +221,17 @@ function fillSelect(el, arr) {
     });
   });
   onSnapshot(collection(db, "locations"), (snap) => {
-    snap.docChanges().forEach(ch => {
-      if (ch.type === "removed") delete locations[ch.doc.id];
-      else locations[ch.doc.id] = ch.doc.data();
-    });
-    refreshPlaceOptionLabels();
+  snap.docChanges().forEach(ch => {
+    if (ch.type === "removed") delete locations[ch.doc.id];
+    else locations[ch.doc.id] = ch.doc.data();
   });
-  
-// Fyll dropdowns
-fillSelect(assignPlaceSelect, places);
-fillSelect(inspectSelect, places);
-fillSelect(moveFromSelect, places);
-fillSelect(moveToSelect, places);
+
+  // Nu fyller vi dropdowns EFTER att locations är laddade
+  fillSelect(assignPlaceSelect, places);
+  fillSelect(inspectSelect, places);
+  fillSelect(moveFromSelect, places);
+  fillSelect(moveToSelect, places);
+});
 
   // === Uppdatera dropdowns ===
   function refreshPlaceOptionLabels() {
