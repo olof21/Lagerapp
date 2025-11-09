@@ -42,15 +42,6 @@
 <!-- 1. Skapa pall -->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">1. Skapa pall</h2>
-<<<<<<< HEAD
-  <label for="createPallIdInput">Pall-ID</label>
-  <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
-  <label for="createContentsInput">Vad finns i pallen?</label>
-  <textarea id="createContentsInput" rows="3" placeholder="Rillmugg vit, Alma stol blå..."></textarea>
-  <label for="createWhoInput">Packad av</label>
-  <input id="createWhoInput" type="text" placeholder="t.ex. Aleksandra" />
-=======
-
   <label for="createPallIdInput">Pall-ID</label>
   <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
   <label for="createContentsInput">Vad finns i pallen?</label>
@@ -145,44 +136,6 @@
 <!-- ===== Firebase + App-logik ===== -->
 <script type="module">
  // Import the functions you need from the SDKs you need
- import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, enableIndexedDbPersistence, doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
-
-
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyC_lEAQE6m-LhuxWfbWVlZ7ag_RQHB_ZbQ",
-  authDomain: "lagervy---databas.firebaseapp.com",
-  projectId: "lagervy---databas",
-  storageBucket: "lagervy---databas.firebasestorage.app",
-  messagingSenderId: "389445759047",
-  appId: "1:389445759047:web:4ec5c41980d6f7939a4162",
-  measurementId: "G-MLL7N1SDBB"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-  const auth = getAuth(app);
-  const db   = getFirestore(app);
-
-  /* 2) Logga in anonymt (kräver att du aktiverat Anonymous i Auth) */
-  await signInAnonymously(auth).catch(console.error);
-
-  /* 3) Offline-stöd – cachea Firestore lokalt, synka när nät finns */
-  enableIndexedDbPersistence(db).catch(() => { /* ignorerar multi-tab-fel */ });
-
-  /* =========  App-logik  ========= */
-<!-- ===== Firebase + App-logik ===== -->
-<script type="module">
- // Import the functions you need from the SDKs you need
  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
@@ -210,6 +163,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+
 
   const auth = getAuth(app);
   const db   = getFirestore(app);
