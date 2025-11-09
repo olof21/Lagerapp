@@ -184,7 +184,7 @@
   const exportBtn         = document.getElementById("exportBtn");
   const importInput       = document.getElementById("importInput");
 
-// 1. Skapa platser
+// Skapa platser
 const places = [];
 (function gen() {
   const S = ["L", "R"];
@@ -195,19 +195,13 @@ const places = [];
           places.push(`${side}-R${r}-C${c}-H${h}`);
 })();
 
-// 2. Hämta dropdowns från DOM
+// Hämta dropdowns från DOM
 const assignPlaceSelect = document.getElementById("assignPlaceSelect");
 const inspectSelect     = document.getElementById("inspectSelect");
 const moveFromSelect    = document.getElementById("moveFromSelect");
 const moveToSelect      = document.getElementById("moveToSelect");
 
-// 3. Fyll dropdowns
-fillSelect(assignPlaceSelect, places);
-fillSelect(inspectSelect, places);
-fillSelect(moveFromSelect, places);
-fillSelect(moveToSelect, places);
-
-// 4. Definiera funktionen
+// Definiera funktionen
 function fillSelect(el, arr) {
   if (!el) return;
   el.innerHTML = "";
@@ -219,7 +213,6 @@ function fillSelect(el, arr) {
   });
 }
 
-  
   // === Realtidsuppdatering ===
   onSnapshot(collection(db, "pallets"), (snap) => {
     snap.docChanges().forEach(ch => {
@@ -235,6 +228,12 @@ function fillSelect(el, arr) {
     refreshPlaceOptionLabels();
   });
   
+// Fyll dropdowns
+fillSelect(assignPlaceSelect, places);
+fillSelect(inspectSelect, places);
+fillSelect(moveFromSelect, places);
+fillSelect(moveToSelect, places);
+
   // === Uppdatera dropdowns ===
   function refreshPlaceOptionLabels() {
     const label = (pid) => {
