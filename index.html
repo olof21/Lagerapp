@@ -215,6 +215,11 @@
   const exportBtn         = document.getElementById("exportBtn");
   const importInput       = document.getElementById("importInput");
   
+  fillSelect(assignPlaceSelect, places);
+  fillSelect(inspectSelect, places);
+  fillSelect(moveFromSelect, places);
+  fillSelect(moveToSelect, places);
+
   // === Hjälpfunktioner ===
   function today() {
     return new Date().toISOString().split("T")[0];
