@@ -162,38 +162,7 @@
   await signInAnonymously(auth).catch(console.error);
   enableIndexedDbPersistence(db).catch(() => {});
   
-  // === Globala variabler & platsgenerering ===
-  const places = [];
-  (function gen() {
-    const S = ["L", "R"];
-    for (const side of S)
-      for (let r = 1; r <= 4; r++)
-        for (let c = 1; c <= 3; c++)
-          for (let h = 1; h <= 3; h++)
-            places.push(`${side}-R${r}-C${c}-H${h}`);
-  })();
-  
-  await (async function ensureAllPlaces() {
-    const batch = writeBatch(db); let need = false;
-    for (const pid of places) {
-      const ref = doc(db, "locations", pid);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        batch.set(ref, { pallId: "", who: "", updated: "" });
-        need = true;
-      }
-    }
-    if (need) await batch.commit();
-  })();
-  
-  let pallets = {};
-  let locations = {};
-  
   // === DOM-referenser ===
-  const assignPlaceSelect = document.getElementById("assignPlaceSelect");
-  const inspectSelect     = document.getElementById("inspectSelect");
-  const moveFromSelect    = document.getElementById("moveFromSelect");
-  const moveToSelect      = document.getElementById("moveToSelect");
   const moveWhoInput      = document.getElementById("moveWhoInput");
   const moveBtn           = document.getElementById("moveBtn");
   const clearFromBtn      = document.getElementById("clearFromBtn");
@@ -214,11 +183,29 @@
   const searchResults     = document.getElementById("searchResults");
   const exportBtn         = document.getElementById("exportBtn");
   const importInput       = document.getElementById("importInput");
-  
-  fillSelect(assignPlaceSelect, places);
-  fillSelect(inspectSelect, places);
-  fillSelect(moveFromSelect, places);
-  fillSelect(moveToSelect, places);
+
+// 1. Hämta dropdowns från DOM
+const assignPlaceSelect = document.getElementById("assignPlaceSelect");
+const inspectSelect     = document.getElementById("inspectSelect");
+const moveFromSelect    = document.getElementById("moveFromSelect");
+const moveToSelect      = document.getElementById("moveToSelect");
+
+// 2. Fyll alla dropdowns
+fillSelect(assignPlaceSelect, places);
+fillSelect(inspectSelect, places);
+fillSelect(moveFromSelect, places);
+fillSelect(moveToSelect, places);
+
+// 3. Funktion som fyller ett <select> med option-värden
+  function fillSelect(el, arr) {
+  if (!el) return;
+  el.innerHTML = "";
+  arr.forEach(v => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = v;
+    el.appendChild(o);
+  });
 
   // === Hjälpfunktioner ===
   function today() {
