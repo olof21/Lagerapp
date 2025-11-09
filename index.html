@@ -184,38 +184,41 @@
   const exportBtn         = document.getElementById("exportBtn");
   const importInput       = document.getElementById("importInput");
 
-// 1. Hämta dropdowns från DOM
+// 1. Skapa platser
+const places = [];
+(function gen() {
+  const S = ["L", "R"];
+  for (const side of S)
+    for (let r = 1; r <= 4; r++)
+      for (let c = 1; c <= 3; c++)
+        for (let h = 1; h <= 3; h++)
+          places.push(`${side}-R${r}-C${c}-H${h}`);
+})();
+
+// 2. Hämta dropdowns från DOM
 const assignPlaceSelect = document.getElementById("assignPlaceSelect");
 const inspectSelect     = document.getElementById("inspectSelect");
 const moveFromSelect    = document.getElementById("moveFromSelect");
 const moveToSelect      = document.getElementById("moveToSelect");
 
-// 2. Fyll alla dropdowns
+// 3. Fyll dropdowns
 fillSelect(assignPlaceSelect, places);
 fillSelect(inspectSelect, places);
 fillSelect(moveFromSelect, places);
 fillSelect(moveToSelect, places);
 
-  // === Hjälpfunktioner ===
-  function today() {
-    return new Date().toISOString().split("T")[0];
-  }
-  function setMsg(el, t, cls = "muted") {
-    if (el) {
-      el.textContent = t;
-      el.className = cls;
-    }
-  }
-  function fillSelect(el, arr) {
-    if (!el) return;
-    el.innerHTML = "";
-    arr.forEach(v => {
-      const o = document.createElement("option");
-      o.value = v;
-      o.textContent = v;
-      el.appendChild(o);
-    });
-  }
+// 4. Definiera funktionen
+function fillSelect(el, arr) {
+  if (!el) return;
+  el.innerHTML = "";
+  arr.forEach(v => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = v;
+    el.appendChild(o);
+  });
+}
+
   
   // === Realtidsuppdatering ===
   onSnapshot(collection(db, "pallets"), (snap) => {
