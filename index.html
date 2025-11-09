@@ -123,11 +123,7 @@
 </section>
 
 <!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
-
-
-<!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
-
-
+ 
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">Export/Import</h2>
 
@@ -396,6 +392,9 @@ clearFromBtn?.addEventListener("click", async () => {
 
   const assignPlaceSelect = document.getElementById("assignPlaceSelect");
   const inspectSelect     = document.getElementById("inspectSelect");
+  const moveFromSelect    = document.getElementById("moveFromSelect");
+  const moveToSelect      = document.getElementById("moveToSelect");
+
   function fillSelect(el, arr){ if(!el) return; el.innerHTML=""; arr.forEach(v=>{const o=document.createElement("option"); o.value=v; o.textContent=v; el.appendChild(o);}); }
   fillSelect(assignPlaceSelect, places);
   fillSelect(inspectSelect, places);
