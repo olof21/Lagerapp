@@ -201,9 +201,10 @@ const inspectSelect     = document.getElementById("inspectSelect");
 const moveFromSelect    = document.getElementById("moveFromSelect");
 const moveToSelect      = document.getElementById("moveToSelect");
 
-// Definiera funktionen
+// Hjälpfunktion för att fylla select-menyer
 function fillSelect(el, arr) {
   if (!el) return;
+  const current = el.value;
   el.innerHTML = "";
   arr.forEach(v => {
     const o = document.createElement("option");
@@ -211,22 +212,24 @@ function fillSelect(el, arr) {
     o.textContent = v;
     el.appendChild(o);
   });
+  if (current) el.value = current; // försök behålla tidigare val
 }
 
-  // === Realtidsuppdatering ===
-  onSnapshot(collection(db, "pallets"), (snap) => {
-    snap.docChanges().forEach(ch => {
-      if (ch.type === "removed") delete pallets[ch.doc.id];
-      else pallets[ch.doc.id] = ch.doc.data();
-    });
+// Realtidsuppdatering
+onSnapshot(collection(db, "pallets"), (snap) => {
+  snap.docChanges().forEach(ch => {
+    if (ch.type === "removed") delete pallets[ch.doc.id];
+    else pallets[ch.doc.id] = ch.doc.data();
   });
-  onSnapshot(collection(db, "locations"), (snap) => {
+});
+
+onSnapshot(collection(db, "locations"), (snap) => {
   snap.docChanges().forEach(ch => {
     if (ch.type === "removed") delete locations[ch.doc.id];
     else locations[ch.doc.id] = ch.doc.data();
   });
 
-  // Nu fyller vi dropdowns EFTER att locations är laddade
+  // ✅ Fyll dropdowns EFTER att locations laddats in
   fillSelect(assignPlaceSelect, places);
   fillSelect(inspectSelect, places);
   fillSelect(moveFromSelect, places);
