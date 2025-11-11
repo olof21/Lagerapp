@@ -92,8 +92,7 @@
   <div id="searchResults" class="results"></div>
 </section>
 
-<!-- 5. Snabbflytt (beta) — notera: ingen JS ännu i Firebase-versionen -->
-<!-- 5. Snabbflytt (beta) — notera: ingen JS ännu i Firebase-versionen -->
+<!-- 5. Snabbflytt-->
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">5. Snabbflytt (beta)</h2>
   <div class="row">
@@ -113,7 +112,7 @@
   <div id="moveMsg" class="muted"></div>
 </section>
 
-<!-- 6. Export/Import — notera: ingen JS ännu i Firebase-versionen -->
+<!-- 6. Export/Import -->
  
 <section class="card">
   <h2 style="font-size:1rem;margin-top:0;">Export/Import</h2>
@@ -159,8 +158,75 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
   
-  await signInAnonymously(auth).catch(console.error);
-  enableIndexedDbPersistence(db).catch(() => {});
+// === AUTENTISERING & ANVÄNDARHANTERING ===
+import {
+  getAuth,
+  signInAnonymously,
+  updateProfile,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  doc,
+  getDoc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// Lyssna på Auth-status (körs vid start och vid inloggning)
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    // Om användaren inte har något visningsnamn ännu
+    if (!user.displayName) {
+      let storedName = localStorage.getItem("displayName");
+      let name = storedName;
+
+      // Fråga användaren om namn om det inte redan finns sparat
+      if (!name) {
+        name = prompt("Ange ditt namn (t.ex. Aleksandra):");
+        while (!name || name.trim() === "") {
+          name = prompt("Du måste ange ett namn (t.ex. Aleksandra):");
+        }
+        name = name.trim();
+      }
+
+      // 🔍 Kontrollera i Firestore att namnet inte redan används
+      const existingUser = await getDoc(doc(db, "users", name.toLowerCase()));
+      if (existingUser.exists()) {
+        alert("Namnet används redan. Välj ett annat!");
+        localStorage.removeItem("displayName");
+        window.location.reload(); // starta om flödet
+        return;
+      }
+
+      // ✅ Uppdatera användarens profil i Firebase Auth
+      await updateProfile(user, { displayName: name });
+
+      // 💾 Spara namnet i localStorage för nästa gång
+      localStorage.setItem("displayName", name);
+
+      // 📂 Skapa användarpost i Firestore
+      await setDoc(doc(db, "users", name.toLowerCase()), {
+        uid: user.uid,
+        name: name,
+        createdAt: new Date().toISOString()
+      });
+
+      console.log(`✅ Ny användare skapad och inloggad: ${name}`);
+    } else {
+      // Användaren har redan ett namn
+      localStorage.setItem("displayName", user.displayName);
+      console.log(`✅ Inloggad som: ${user.displayName}`);
+    }
+  } else {
+    // Ingen användare inloggad ännu → logga in anonymt
+    console.log("🔐 Ingen användare – loggar in anonymt...");
+    await signInAnonymously(auth);
+  }
+});
+
+// 🛰️ Offline-stöd (för Firestore)
+enableIndexedDbPersistence(db).catch((err) => {
+  console.warn("⚠️ Kunde inte aktivera offline-stöd:", err.code);
+});
   
   // === DOM-referenser ===
   const moveWhoInput      = document.getElementById("moveWhoInput");
@@ -268,12 +334,14 @@ onSnapshot(collection(db, "locations"), (snap) => {
     setMsg(createSaveMsg, "");
     const id = createPallIdInput.value.trim();
     const contents = createContentsInput.value.trim();
-    const who = createWhoInput.value.trim();
+    const who = auth.currentUser?.displayName || "okänd";
     if (!id) return setMsg(createSaveMsg, "❌ Du måste ange Pall-ID.", "muted err");
     if (!contents) return setMsg(createSaveMsg, "❌ Du måste ange innehåll.", "muted err");
     const ref = doc(db, "pallets", id);
     if ((await getDoc(ref)).exists()) return setMsg(createSaveMsg, "❌ Pall-ID finns redan.", "muted err");
     await setDoc(ref, { contents, who, createdDate: today() });
+    await logAction("Skapade pall", { pallId: id, contents });
+
     setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "ok");
   });
   
@@ -282,13 +350,14 @@ onSnapshot(collection(db, "locations"), (snap) => {
     setMsg(assignSaveMsg, "");
     const pallId = assignPallIdInput.value.trim();
     const placeId = assignPlaceSelect.value;
-    const who = assignWhoInput.value.trim();
+    const who = auth.currentUser?.displayName || "okänd";
     if (!pallId) return setMsg(assignSaveMsg, "❌ Du måste ange Pall-ID.", "muted err");
     const pSnap = await getDoc(doc(db, "pallets", pallId));
     if (!pSnap.exists()) return setMsg(assignSaveMsg, "❌ Det Pall-ID:t finns inte. Skapa pallen först.", "muted err");
     const old = await getDoc(doc(db, "locations", placeId));
     const replaced = old.exists() && old.data().pallId ? ` (ersatte ${old.data().pallId})` : "";
     await setDoc(doc(db, "locations", placeId), { pallId, who, updated: today() });
+    await logAction("Tilldelade pall till plats", { pallId, placeId });
     setMsg(assignSaveMsg, `✅ Plats ${placeId} har nu pall ${pallId}.${replaced}`, "ok");
   });
   
@@ -297,7 +366,7 @@ onSnapshot(collection(db, "locations"), (snap) => {
     setMsg(moveMsg, "");
     const fromId = moveFromSelect?.value;
     const toId = moveToSelect?.value;
-    const who = moveWhoInput?.value.trim();
+    const who = auth.currentUser?.displayName || "okänd";
     if (!fromId || !toId) return setMsg(moveMsg, "❌ Välj både 'Från' och 'Till'.", "muted err");
     if (fromId === toId) return setMsg(moveMsg, "❌ Samma plats.", "muted err");
     try {
@@ -313,6 +382,7 @@ onSnapshot(collection(db, "locations"), (snap) => {
         tx.set(fromRef, { pallId: "", who: who || fromData.who || "", updated: today() });
         tx.set(toRef, { pallId: fromData.pallId, who: who || toData.who || "", updated: today() });
       });
+      await logAction("Flyttade pall", { from: fromId, to: toId });
       setMsg(moveMsg, `✅ Flytt klar: ${fromId} → ${toId}`, "ok");
     } catch (e) {
       setMsg(moveMsg, `❌ ${e.message}`, "muted err");
@@ -323,12 +393,13 @@ onSnapshot(collection(db, "locations"), (snap) => {
   clearFromBtn?.addEventListener("click", async () => {
     setMsg(moveMsg, "");
     const fromId = moveFromSelect?.value;
-    const who = moveWhoInput?.value.trim();
+    const who = auth.currentUser?.displayName || "okänd";
     if (!fromId) return setMsg(moveMsg, "❌ Välj 'Från'-plats.", "muted err");
     const ref = doc(db, "locations", fromId);
     const snap = await getDoc(ref);
     const had = snap.exists() && snap.data().pallId;
     await setDoc(ref, { pallId: "", who: who || (snap.data()?.who || ""), updated: today() });
+    await logAction("Tömde plats", { placeId: fromId });
     setMsg(moveMsg, had ? `🧹 Tömde ${fromId}.` : `ℹ️ ${fromId} var redan tom.`, "muted");
   });
   
