@@ -1,71 +1,125 @@
-// === AUTENTISERING & ANVÄNDARHANTERING ===
-import {
-  getAuth,
-  signInAnonymously,
-  updateProfile,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import {
-  doc,
-  getDoc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lagerapp</title>
 
-const auth = getAuth(app);
+  <!-- PWA / manifest -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#222222" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-// Lyssna på Auth-status (körs vid start och vid inloggning)
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    // Om användaren inte har något visningsnamn ännu
-    if (!user.displayName) {
-      let storedName = localStorage.getItem("displayName");
-      let name = storedName;
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #f5f5f5; color: #222; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.07); padding: 1rem; margin-bottom: 1rem; }
+    label { font-size: .9rem; font-weight: 600; display: block; margin-bottom: .25rem; }
+    select, input, textarea, button { width: 100%; font-size: 1rem; padding: .7rem .8rem; border-radius: 8px; border: 1px solid #ccc; margin-bottom: .75rem; background: #fff; box-sizing: border-box; }
+    button { background: #222; color: #fff; font-weight: 600; border: none; cursor: pointer; }
+    .muted { color: #666; font-size: .8rem; }
+  </style>
+</head>
 
-      // Fråga användaren om namn om det inte redan finns sparat
-      if (!name) {
-        name = prompt("Ange ditt namn (t.ex. Aleksandra):");
-        while (!name || name.trim() === "") {
-          name = prompt("Du måste ange ett namn (t.ex. Aleksandra):");
-        }
-        name = name.trim();
-      }
+<body>
+  <header>
+    <h1>Lagerapp (PWA)</h1>
+    <div class="muted">1) Skapa pall → 2) Tilldela plats → 3) Sök/visa → 4) Flytta</div>
+  </header>
 
-      // 🔍 Kontrollera i Firestore att namnet inte redan används
-      const existingUser = await getDoc(doc(db, "users", name.toLowerCase()));
-      if (existingUser.exists()) {
-        alert("Namnet används redan. Välj ett annat!");
-        localStorage.removeItem("displayName");
-        window.location.reload(); // starta om flödet
-        return;
-      }
+  <!-- Här ligger all HTML-struktur -->
+  <!-- Sektion 1: Skapa pall -->
+  <section class="card">
+    <h2>1. Skapa pall</h2>
+    <label for="createPallIdInput">Pall-ID</label>
+    <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
+    <label for="createContentsInput">Vad finns i pallen?</label>
+    <textarea id="createContentsInput" rows="3" placeholder="Ex: Rillmugg vit, Alma stol blå..."></textarea>
+    <label for="createWhoInput">Packad av</label>
+    <input id="createWhoInput" type="text" placeholder="t.ex. Aleksandra" />
+    <button id="createSaveBtn">Spara pall</button>
+    <div id="createSaveMsg" class="muted"></div>
+  </section>
 
-      // ✅ Uppdatera användarens profil i Firebase Auth
-      await updateProfile(user, { displayName: name });
+  <!-- Sektion 2: Tilldela pall -->
+  <section class="card">
+    <h2>2. Tilldela pall till plats</h2>
+    <div class="row">
+      <div><label for="assignPallIdInput">Pall-ID</label><input id="assignPallIdInput" type="text" placeholder="t.ex. P014" /></div>
+      <div><label for="assignPlaceSelect">Plats</label><select id="assignPlaceSelect"></select></div>
+    </div>
+    <label for="assignWhoInput">Inkörd av</label>
+    <input id="assignWhoInput" type="text" placeholder="t.ex. Yosef" />
+    <button id="assignSaveBtn">Spara placering</button>
+    <div id="assignSaveMsg" class="muted"></div>
+  </section>
 
-      // 💾 Spara namnet i localStorage för nästa gång
-      localStorage.setItem("displayName", name);
+  <!-- Sektion 3: Visa pall -->
+  <section class="card">
+    <h2>3. Visa innehåll på plats</h2>
+    <label for="inspectSelect">Plats</label>
+    <select id="inspectSelect"></select>
+    <button id="inspectBtn">Visa innehåll</button>
+    <div id="inspectResult" class="results"></div>
+  </section>
 
-      // 📂 Skapa användarpost i Firestore
-      await setDoc(doc(db, "users", name.toLowerCase()), {
-        uid: user.uid,
-        name: name,
-        createdAt: new Date().toISOString()
+  <!-- Sektion 4: Sök -->
+  <section class="card">
+    <h2>4. Sök artikel → hitta plats</h2>
+    <input id="searchInput" type="text" placeholder="Ex: Rillmugg / Alma stol" />
+    <button id="searchBtn">Sök var den står</button>
+    <div id="searchResults" class="results"></div>
+  </section>
+
+  <!-- Sektion 5: Flytta pall -->
+  <section class="card">
+    <h2>5. Snabbflytt (beta)</h2>
+    <label for="moveFromSelect">Från plats</label><select id="moveFromSelect"></select>
+    <label for="moveToSelect">Till plats</label><select id="moveToSelect"></select>
+    <label for="moveWhoInput">Flyttad av</label><input id="moveWhoInput" type="text" placeholder="t.ex. Yosef" />
+    <button id="moveBtn">Flytta pall</button>
+    <button id="clearFromBtn">Töm 'Från'-plats</button>
+    <div id="moveMsg" class="muted"></div>
+  </section>
+
+  <!-- Sektion 6: Export / Import -->
+  <section class="card">
+    <h2>Export/Import</h2>
+    <button id="exportBtn">Exportera data (JSON)</button>
+    <label for="importInput">Importera data (JSON-fil)</label>
+    <input id="importInput" type="file" accept="application/json" />
+    <div class="muted">Export/Import hämtar & återställer lagret.</div>
+  </section>
+
+  <!-- === Ladda modulerna (i rätt ordning) === -->
+  <script type="module" src="./firebase-setup.js"></script>
+  <script type="module" src="./ui-helper.js"></script>
+  <script type="module" src="./logger.js"></script>
+  <script type="module" src="./app-logic.js"></script>
+
+  <!-- === Service Worker === -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').then(reg => {
+          reg.addEventListener('updatefound', () => {
+            const sw = reg.installing;
+            sw.addEventListener('statechange', () => {
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                const ok = confirm('Ny version av appen finns. Uppdatera nu?');
+                if (ok) sw.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          });
+        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
       });
-
-      console.log(`✅ Ny användare skapad och inloggad: ${name}`);
-    } else {
-      // Användaren har redan ett namn
-      localStorage.setItem("displayName", user.displayName);
-      console.log(`✅ Inloggad som: ${user.displayName}`);
     }
-  } else {
-    // Ingen användare inloggad ännu → logga in anonymt
-    console.log("🔐 Ingen användare – loggar in anonymt...");
-    await signInAnonymously(auth);
-  }
-});
-
-// 🛰️ Offline-stöd (för Firestore)
-enableIndexedDbPersistence(db).catch((err) => {
-  console.warn("⚠️ Kunde inte aktivera offline-stöd:", err.code);
-});
+  </script>
+</body>
+</html>
