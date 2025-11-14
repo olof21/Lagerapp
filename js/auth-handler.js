@@ -76,13 +76,6 @@ import {
 
 import { startApp } from './app-logic.js';
 
-
-
-// Initiera Firebase
-const auth = getAuth();
-const db = getFirestore();
-
-
 // ================================
 // Startpunkt – vänta på Firebase Auth
 // ================================
