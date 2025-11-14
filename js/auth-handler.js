@@ -18,9 +18,9 @@ onAuthStateChanged(auth, async (user) => {
 
       // Fråga användaren om namn om det inte redan finns sparat
       if (!name) {
-        name = prompt("Ange ditt namn (t.ex. Aleksandra):");
+        name = prompt("Ange ditt namn");
         while (!name || name.trim() === "") {
-          name = prompt("Du måste ange ett namn (t.ex. Aleksandra):");
+          name = prompt("Du måste ange ett namn:");
         }
         name = name.trim();
       }

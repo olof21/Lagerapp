@@ -2,9 +2,9 @@
   
 // 1️⃣ Importera det du behöver
 import { auth, db } from "./firebase-setup.js";
-import { setMsg, today, fillSelect, refreshPlaceOptionLabels } from "./ui-helpers.js";
+import { setMsg, today, refreshPlaceOptionLabels } from "./ui-helper.js";
 import { 
-  doc, getDoc, setDoc, onSnapshot, writeBatch, runTransaction 
+  doc, getDoc, setDoc, onSnapshot, writeBatch, runTransaction, collection 
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { logAction } from "./logger.js";
 
@@ -45,6 +45,8 @@ const moveToSelect      = document.getElementById("moveToSelect");
 // 3️⃣ Efter detta kan du börja skriva funktioner och logik
 // t.ex. skapa pall, tilldela plats, flytta pall osv
 
+const pallets = {};
+const locations = {};
 
 // Skapa platser
 const places = [];
@@ -56,9 +58,13 @@ const places = [];
         for (let h = 1; h <= 3; h++)
           places.push(`${side}-R${r}-C${c}-H${h}`);
 })();
+console.log("✅ Platser genererade:", places.length, "ex:", places.slice(0, 5));
+
 
 // Hjälpfunktion för att fylla select-menyer
 function fillSelect(el, arr) {
+  console.log("🎯 fillSelect körs för element:", el.id, "– antal:", arr.length);
+  
   if (!el) return;
   const current = el.value;
   el.innerHTML = "";
@@ -73,6 +79,7 @@ function fillSelect(el, arr) {
 
 // Realtidsuppdatering
 onSnapshot(collection(db, "pallets"), (snap) => {
+  console.log("📡 onSnapshot triggered — locations laddas...");
   snap.docChanges().forEach(ch => {
     if (ch.type === "removed") delete pallets[ch.doc.id];
     else pallets[ch.doc.id] = ch.doc.data();
@@ -90,6 +97,7 @@ onSnapshot(collection(db, "locations"), (snap) => {
   fillSelect(inspectSelect, places);
   fillSelect(moveFromSelect, places);
   fillSelect(moveToSelect, places);
+  console.log("📋 Fyller dropdowns nu. Antal platser:", places.length);
 });
   
   // === Funktioner ===

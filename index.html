@@ -15,12 +15,88 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 1rem; background: #f5f5f5; color: #222; }
-    .card { background: #fff; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.07); padding: 1rem; margin-bottom: 1rem; }
-    label { font-size: .9rem; font-weight: 600; display: block; margin-bottom: .25rem; }
-    select, input, textarea, button { width: 100%; font-size: 1rem; padding: .7rem .8rem; border-radius: 8px; border: 1px solid #ccc; margin-bottom: .75rem; background: #fff; box-sizing: border-box; }
-    button { background: #222; color: #fff; font-weight: 600; border: none; cursor: pointer; }
-    .muted { color: #666; font-size: .8rem; }
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    header {
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.07);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    select, input, textarea, button {
+      width: 100%;
+      font-size: 1rem;
+      padding: 0.7rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 0.75rem;
+      background: #fff;
+    }
+
+    button {
+      background: #222;
+      color: #fff;
+      font-weight: 600;
+      border: none;
+    }
+
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .row > div {
+      flex: 1 1 140px;
+    }
+
+    .results {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .result-item {
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-item strong {
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 0.8rem;
+    }
   </style>
 </head>
 
@@ -94,12 +170,13 @@
     <div class="muted">Export/Import hämtar & återställer lagret.</div>
   </section>
 
-  <!-- === Ladda modulerna (i rätt ordning) === -->
-  <script type="module" src="./firebase-setup.js"></script>
-  <script type="module" src="./js/auth-handler.js"></script>
-  <script type="module" src="./ui-helper.js"></script>
-  <script type="module" src="./logger.js"></script>
-  <script type="module" src="./app-logic.js"></script>
+  <!-- === Ladda modulerna@ === -->
+    <script type="module" src="./js/firebase-setup.js"></script>
+    <script type="module" src="./js/ui-helper.js"></script>
+    <script type="module" src="./js/logger.js"></script>
+    <script type="module" src="./js/auth-handler.js"></script>
+    <script type="module" src="./js/app-logic.js"></script>
+  
 
   <!-- === Service Worker === -->
   <script>

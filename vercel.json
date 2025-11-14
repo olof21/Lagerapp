@@ -3,23 +3,21 @@
     {
       "source": "/manifest.webmanifest",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
-        }
+        { "key": "Content-Type", "value": "application/manifest+json" }
       ]
     },
     {
       "source": "/service-worker.js",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     }
   ],
   "rewrites": [
+    { "source": "/service-worker.js", "destination": "/service-worker.js" },
+    { "source": "/(.*\\.js)", "destination": "/$1" },
+    { "source": "/(.*\\.css)", "destination": "/$1" },
+    { "source": "/(.*\\.json)", "destination": "/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

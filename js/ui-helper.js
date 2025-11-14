@@ -13,22 +13,6 @@ export function today() {
     return new Date().toISOString().split("T")[0];
   }
   
-  /** Fyller en <select>-meny med värden */
-export function fillSelect(el, arr) {
-    if (!el) return;
-    const current = el.value;
-    el.innerHTML = "";
-    arr.forEach(v => {
-      const o = document.createElement("option");
-      o.value = v;
-      o.textContent = v;
-      el.appendChild(o);
-    });
-    if (current) el.value = current; // försök behålla tidigare val
-  }
-  
-// ui-helper.js
-
 /** Uppdaterar dropdowns med aktuell status (ledig/pall-ID) */
 export function refreshPlaceOptionLabels(assignPlaceSelect, inspectSelect, moveFromSelect, moveToSelect, places, locations) {
     const label = (pid) => {

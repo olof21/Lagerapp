@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lagerprototyp</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    header {
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.07);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    select, input, textarea, button {
+      width: 100%;
+      font-size: 1rem;
+      padding: 0.7rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 0.75rem;
+      background: #fff;
+    }
+
+    button {
+      background: #222;
+      color: #fff;
+      font-weight: 600;
+      border: none;
+    }
+
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .row > div {
+      flex: 1 1 140px;
+    }
+
+    .results {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .result-item {
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-item strong {
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Lagervy (demo)</h1>
+  <div class="muted">Sök vad du behöver, se vart det står, eller uppdatera en plats.</div>
+</header>
+
+<!-- Sök-del -->
+<section class="card">
+  <h2 style="font-size:1rem;margin-top:0;">Sök efter innehåll</h2>
+  <input id="searchInput" type="text" placeholder="Ex: skruv M8 / filterhus blå" />
+  <button id="searchBtn">Sök var det står</button>
+
+  <div id="searchResults" class="results"></div>
+</section>
+
+<!-- Uppdatera plats-del -->
+<section class="card">
+  <h2 style="font-size:1rem;margin-top:0;">Uppdatera plats</h2>
+
+  <div class="row">
+    <div>
+      <label for="placeSelect">Plats</label>
+      <select id="placeSelect"></select>
+    </div>
+    <div>
+      <label for="pallIdInput">Pall-ID</label>
+      <input id="pallIdInput" type="text" placeholder="t.ex. P014" />
+    </div>
+  </div>
+
+  <label for="contentsInput">Vad finns i pallen?</label>
+  <textarea id="contentsInput" rows="3" placeholder="Plastclips gul, O-ringar 12mm, 2 lådor filter..."></textarea>
+
+  <label for="whoInput">Uppdaterad av</label>
+  <input id="whoInput" type="text" placeholder="t.ex. Kim" />
+
+  <button id="saveBtn">Spara tillfälligt (demo)</button>
+
+  <div id="saveMsg" class="muted"></div>
+</section>
+
+<!-- Se innehåll för en plats -->
+<section class="card">
+  <h2 style="font-size:1rem;margin-top:0;">Visa vad som står på en plats</h2>
+
+  <div class="row">
+    <div>
+      <label for="inspectSelect">Plats</label>
+      <select id="inspectSelect"></select>
+    </div>
+  </div>
+
+  <button id="inspectBtn">Visa innehåll</button>
+
+  <div id="inspectResult" class="results"></div>
+</section>
+
+<script>
+  // 1. Alla plats-ID:n (samma lista som ovan)
+  const places = [];
+
+  // Helper för att generera alla platser programatiskt
+  function generatePlaces() {
+    const sides = ["L","R"]; // vänster/höger
+    for (const side of sides) {
+      for (let rad=1; rad<=4; rad++) {
+        for (let col=1; col<=3; col++) {
+          for (let h=1; h<=3; h++) {
+            const id = `${side}-R${rad}-C${col}-H${h}`;
+            places.push({
+              placeId: id,
+              side,
+              rad,
+              col,
+              h,
+              pallId: "",
+              contents: "",
+              who: "",
+              updated: ""
+            });
+          }
+        }
+      }
+    }
+  }
+
+  generatePlaces();
+
+  // 2. "Databas" i minnet: key = placeId
+  const db = {};
+  for (const p of places) {
+    db[p.placeId] = {
+      pallId: "",
+      contents: "",
+      who: "",
+      updated: ""
+    };
+  }
+
+  // 3. Fyll dropdowns
+  const placeSelect = document.getElementById("placeSelect");
+  const inspectSelect = document.getElementById("inspectSelect");
+
+  function fillDropdowns() {
+    places.forEach(p => {
+      const opt1 = document.createElement("option");
+      opt1.value = p.placeId;
+      opt1.textContent = p.placeId;
+      placeSelect.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = p.placeId;
+      opt2.textContent = p.placeId;
+      inspectSelect.appendChild(opt2);
+    });
+  }
+  fillDropdowns();
+
+  // 4. Spara/uppdatera plats
+  const saveBtn = document.getElementById("saveBtn");
+  const saveMsg = document.getElementById("saveMsg");
+
+  saveBtn.addEventListener("click", () => {
+    const placeId = placeSelect.value;
+    const pallId = document.getElementById("pallIdInput").value.trim();
+    const contents = document.getElementById("contentsInput").value.trim();
+    const who = document.getElementById("whoInput").value.trim();
+
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0]; // yyyy-mm-dd
+
+    db[placeId] = {
+      pallId,
+      contents,
+      who,
+      updated: dateStr
+    };
+
+    saveMsg.textContent = `Sparat ${placeId} → ${pallId} (${dateStr})`;
+  });
+
+  // 5. Visa innehåll för en viss plats
+  const inspectBtn = document.getElementById("inspectBtn");
+  const inspectResult = document.getElementById("inspectResult");
+
+  inspectBtn.addEventListener("click", () => {
+    const placeId = inspectSelect.value;
+    const row = db[placeId];
+
+    if (!row || (!row.pallId && !row.contents)) {
+      inspectResult.innerHTML = `
+        <div class="result-item">
+          <strong>${placeId}</strong>
+          <div class="muted">Inget registrerat innehåll.</div>
+        </div>
+      `;
+      return;
+    }
+
+    inspectResult.innerHTML = `
+      <div class="result-item">
+        <strong>${placeId}</strong>
+        <div>Pall-ID: ${row.pallId || "-"}</div>
+        <div>Innehåll: ${row.contents || "-"}</div>
+        <div class="muted">Uppdaterad av ${row.who || "okänd"} ${row.updated ? "den " + row.updated : ""}</div>
+      </div>
+    `;
+  });
+
+  // 6. Sök efter innehåll (t.ex. "skruv M8")
+  const searchBtn = document.getElementById("searchBtn");
+  const searchInput = document.getElementById("searchInput");
+  const searchResults = document.getElementById("searchResults");
+
+  searchBtn.addEventListener("click", () => {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q) {
+      searchResults.innerHTML = `<div class="muted">Skriv något att söka på.</div>`;
+      return;
+    }
+
+    const hits = [];
+    for (const [placeId, row] of Object.entries(db)) {
+      if (row.contents.toLowerCase().includes(q)) {
+        hits.push({ placeId, ...row });
+      }
+    }
+
+    if (hits.length === 0) {
+      searchResults.innerHTML = `<div class="muted">Inget hittades för "${q}".</div>`;
+      return;
+    }
+
+    searchResults.innerHTML = hits.map(hit => `
+      <div class="result-item">
+        <strong>${hit.placeId}</strong>
+        <div>Pall-ID: ${hit.pallId || "-"}</div>
+        <div>Innehåll: ${hit.contents}</div>
+        <div class="muted">Uppdaterad av ${hit.who || "okänd"} ${hit.updated ? "den " + hit.updated : ""}</div>
+      </div>
+    `).join("");
+  });
+</script>
+
+</body>
+</html>
