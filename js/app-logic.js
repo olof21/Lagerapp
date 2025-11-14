@@ -7,7 +7,18 @@ import {
   doc, getDoc, setDoc, onSnapshot, writeBatch, runTransaction, collection 
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { logAction } from "./logger.js";
+import { initAuth } from './auth-handler.js';
 
+initAuth(() => {
+  console.log("Auth + namn klart. Startar appen...");
+  startApp();   // ← din appstart-funktion
+});
+
+export function startApp() {
+  console.log("Appen startar nu!");
+  // här fortsätter allt du redan gör:
+  // init UI, fyll select, hämta platsdata, lyssna på Firestore osv
+}
 
 
 // 2️⃣ Hämta DOM-referenser

@@ -114,8 +114,6 @@
     <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
     <label for="createContentsInput">Vad finns i pallen?</label>
     <textarea id="createContentsInput" rows="3" placeholder="Ex: Rillmugg vit, Alma stol blå..."></textarea>
-    <label for="createWhoInput">Packad av</label>
-    <input id="createWhoInput" type="text" placeholder="t.ex. Aleksandra" />
     <button id="createSaveBtn">Spara pall</button>
     <div id="createSaveMsg" class="muted"></div>
   </section>
@@ -127,8 +125,6 @@
       <div><label for="assignPallIdInput">Pall-ID</label><input id="assignPallIdInput" type="text" placeholder="t.ex. P014" /></div>
       <div><label for="assignPlaceSelect">Plats</label><select id="assignPlaceSelect"></select></div>
     </div>
-    <label for="assignWhoInput">Inkörd av</label>
-    <input id="assignWhoInput" type="text" placeholder="t.ex. Yosef" />
     <button id="assignSaveBtn">Spara placering</button>
     <div id="assignSaveMsg" class="muted"></div>
   </section>
@@ -152,10 +148,9 @@
 
   <!-- Sektion 5: Flytta pall -->
   <section class="card">
-    <h2>5. Snabbflytt (beta)</h2>
+    <h2>5. Snabbflytt</h2>
     <label for="moveFromSelect">Från plats</label><select id="moveFromSelect"></select>
     <label for="moveToSelect">Till plats</label><select id="moveToSelect"></select>
-    <label for="moveWhoInput">Flyttad av</label><input id="moveWhoInput" type="text" placeholder="t.ex. Yosef" />
     <button id="moveBtn">Flytta pall</button>
     <button id="clearFromBtn">Töm 'Från'-plats</button>
     <div id="moveMsg" class="muted"></div>
