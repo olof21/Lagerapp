@@ -1,18 +1,5 @@
 // Hanterar inloggning, namn och användarregistrering
 
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-async function generateAvailableIds() {
-  const db = getFirestore();
-  for (let i = 1; i <= 999; i++) {
-    await setDoc(doc(db, "availablePalletIds", i.toString()), { free: true });
-  }
-  console.log("Klart! 1–999 skapade.");
-}
-
-// KÖR GENERERINGEN EN GÅNG
-generateAvailableIds();
-
 import { auth, db } from "./firebase-setup.js";
 import { 
   getAuth, 
@@ -28,6 +15,19 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 import { startApp } from './app-logic.js';
+
+
+async function generateAvailableIds() {
+  const db = getFirestore();
+  for (let i = 1; i <= 999; i++) {
+    await setDoc(doc(db, "availablePalletIds", i.toString()), { free: true });
+  }
+  console.log("Klart! 1–999 skapade.");
+}
+console.log("TEST: generatorn laddades!");
+
+// KÖR GENERERINGEN EN GÅNG
+generateAvailableIds();
 
 // ================================
 // Startpunkt – vänta på Firebase Auth

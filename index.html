@@ -108,15 +108,26 @@
 
   <!-- Här ligger all HTML-struktur -->
   <!-- Sektion 1: Skapa pall -->
-  <section class="card">
-    <h2>1. Skapa pall</h2>
+<section class="card">
+  <h2>1. Skapa pall</h2>
+
+  <!-- Steg 1: Ny pall-knapp -->
+  <button id="createNewPalletBtn">Ny pall</button>
+
+  <!-- Steg 2: Visas först EFTER att pall skapats -->
+  <div id="createPalletForm" style="display: none; margin-top: 1rem;">
+    
     <label for="createPallIdInput">Pall-ID</label>
-    <input id="createPallIdInput" type="text" placeholder="t.ex. P014" />
+    <input id="createPallIdInput" type="text" readonly />
+
     <label for="createContentsInput">Vad finns i pallen?</label>
     <textarea id="createContentsInput" rows="3" placeholder="Ex: Rillmugg vit, Alma stol blå..."></textarea>
+
     <button id="createSaveBtn">Spara pall</button>
     <div id="createSaveMsg" class="muted"></div>
-  </section>
+  </div>
+</section>
+
 
   <!-- Sektion 2: Tilldela pall -->
   <section class="card">

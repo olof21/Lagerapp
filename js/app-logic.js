@@ -8,6 +8,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { logAction } from "./logger.js";
 import { initAuth } from './auth-handler.js';
+import { createNewPallet } from "./pallet-handler.js";
+
 
 initAuth(() => {
   console.log("Auth + namn klart. Startar appen...");
@@ -53,8 +55,37 @@ const inspectSelect     = document.getElementById("inspectSelect");
 const moveFromSelect    = document.getElementById("moveFromSelect");
 const moveToSelect      = document.getElementById("moveToSelect");
 
+const createNewPalletBtn = document.getElementById("createNewPalletBtn");
+const createPalletForm = document.getElementById("createPalletForm");
+
 // 3️⃣ Efter detta kan du börja skriva funktioner och logik
 // t.ex. skapa pall, tilldela plats, flytta pall osv
+
+// Trycker "Ny pall"
+createNewPalletBtn?.addEventListener("click", async () => {
+  setMsg(createSaveMsg, "");
+
+  try {
+    // Hämta ID (minsta lediga)
+    const newId = await createNewPallet();
+
+    // Visa ID i input
+    createPallIdInput.value = newId;
+
+    // Visa formuläret
+    createPalletForm.style.display = "block";
+
+    // Rensa innehållsfältet
+    createContentsInput.value = "";
+
+    // Scrolla ner och ge fokus på contents
+    createContentsInput.focus();
+
+  } catch (err) {
+    console.error(err);
+    setMsg(createSaveMsg, "❌ Kunde inte skapa pall.", "muted err");
+  }
+});
 
 const pallets = {};
 const locations = {};
@@ -116,18 +147,25 @@ onSnapshot(collection(db, "locations"), (snap) => {
   // 1. Skapa ny pall
   createSaveBtn?.addEventListener("click", async () => {
     setMsg(createSaveMsg, "");
+  
     const id = createPallIdInput.value.trim();
     const contents = createContentsInput.value.trim();
     const who = auth.currentUser?.displayName || "okänd";
-    if (!id) return setMsg(createSaveMsg, "❌ Du måste ange Pall-ID.", "muted err");
-    if (!contents) return setMsg(createSaveMsg, "❌ Du måste ange innehåll.", "muted err");
+  
+    if (!contents) {
+      return setMsg(createSaveMsg, "❌ Du måste ange innehåll.", "muted err");
+    }
+  
     const ref = doc(db, "pallets", id);
-    if ((await getDoc(ref)).exists()) return setMsg(createSaveMsg, "❌ Pall-ID finns redan.", "muted err");
-    await setDoc(ref, { contents, who, createdDate: today() });
+  
+    // Spara innehåll
+    await setDoc(ref, { contents, who, createdDate: today() }, { merge: true });
+  
     await logAction("Skapade pall", { pallId: id, contents });
-
+  
     setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "ok");
   });
+  
   
   // 2. Tilldela pall till plats
   assignSaveBtn?.addEventListener("click", async () => {
