@@ -1,5 +1,5 @@
 // pallet-handler.js
-// Hanterar skapande och tömning av pallar (FIFO 1–999)
+// Hanterar pall-ID-poolen och tömning av pallar via Firestore
 
 import {
     getFirestore,
@@ -7,59 +7,58 @@ import {
     getDocs,
     deleteDoc,
     doc,
-    setDoc
+    setDoc,
+    getDoc
   } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
   
   const db = getFirestore();
   
   /**
-   * Hämtar minsta lediga pall-ID (1–999) och reserverar det genom att ta bort ID:t
-   * från availablePalletIds och skapa en pall i pallets-samlingen.
-   *
-   * Returnerar det nya ID:t som sträng.
+   * 🟦 Hämta nästa lediga pall-ID
+   * Returnerar bara ID:t — ändrar INGENTING i Firestore.
+   * (Själva pallen skapas först när man trycker "Spara".)
    */
-  export async function createNewPallet() {
-    // 1. Hämta alla lediga ID:n (dokument-ID:n i collectionen)
-    const snapshot = await getDocs(collection(db, "availablePalletIds"));
+  export async function reservePalletId() {
+    const colRef = collection(db, "availablePalletIds");
+    const snap = await getDocs(colRef);
   
-    if (snapshot.empty) {
+    if (snap.empty) {
       throw new Error("Inga lediga pall-ID:n kvar (1–999 upptagna).");
     }
   
-    // 2. Lista alla ID som numbers
-    const ids = snapshot.docs.map(d => Number(d.id));
-  
-    // 3. Sortera för att få minsta möjliga ID
+    // Plocka ut dokument-ID:n (1..999)
+    const ids = snap.docs.map(d => Number(d.id));
     ids.sort((a, b) => a - b);
   
-    // 4. Använd minsta ID
-    const nextId = ids[0].toString();
-  
-    // 5. Ta bort ID från availablePalletIds poolen
-    await deleteDoc(doc(db, "availablePalletIds", nextId));
-  
-    // 6. Skapa en tom pallpost i pallets med grunddata
-    await setDoc(doc(db, "pallets", nextId), {
-      createdAt: Date.now(),
-      status: "active",
-      contents: "",   // kommer senare fyllas i via app-logic.js
-    });
-  
-    return nextId;
+    // Returnera lägsta lediga ID
+    return ids[0].toString();
   }
   
   /**
-   * Tar bort pallen och lägger tillbaka ID i poolen så det kan användas igen.
+   * 🟦 Skapar pallen i Firestore när användaren trycker "Spara"
+   * - Tar bort ID från poolen
+   * - Skapar pallen i "pallets"
+   */
+  export async function createPalletInFirestore(id, data) {
+    const idStr = id.toString();
+  
+    // 1. Ta bort ID från poolen (ledig → upptagen)
+    await deleteDoc(doc(db, "availablePalletIds", idStr));
+  
+    // 2. Skapa själva pallen
+    await setDoc(doc(db, "pallets", idStr), data, { merge: true });
+  }
+  
+  /**
+   * 🟦 Töm en pall (ger tillbaka ID till poolen)
    */
   export async function emptyPallet(id) {
     const idStr = id.toString();
   
-    // 1. Radera pallen
+    // 1. Ta bort pallen helt
     await deleteDoc(doc(db, "pallets", idStr));
   
     // 2. Lägg tillbaka ID i poolen
     await setDoc(doc(db, "availablePalletIds", idStr), { free: true });
-  
-    console.log(`Pall ${idStr} tömd och ID återfört till poolen.`);
   }
   

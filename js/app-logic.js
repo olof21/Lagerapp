@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { logAction } from "./logger.js";
 import { initAuth } from './auth-handler.js';
-import { createNewPallet } from "./pallet-handler.js";
+import { reservePalletId, createPalletInFirestore } from "./pallet-handler.js";
 
 // Start
 initAuth(() => {
@@ -30,6 +30,20 @@ const moveMsg           = document.getElementById("moveMsg");
 const createPallIdInput = document.getElementById("createPallIdInput");
 const createContentsInput = document.getElementById("createContentsInput");
 const createSaveBtn     = document.getElementById("createSaveBtn");
+
+// (DETTA ÄR EGENTLIGEN DEL AV "SKAPA PALL"-DELEN)  Aktivera/inaktivera "Spara pall" beroende på innehåll
+createContentsInput?.addEventListener("input", () => {
+  const valid = createContentsInput.value.trim().length >= 2;
+
+  if (valid) {
+    createSaveBtn.disabled = false;
+    createSaveBtn.classList.remove("disabled");
+  } else {
+    createSaveBtn.disabled = true;
+    createSaveBtn.classList.add("disabled");
+  }
+});
+
 const createSaveMsg     = document.getElementById("createSaveMsg");
 
 const assignPallIdInput = document.getElementById("assignPallIdInput");
@@ -53,6 +67,10 @@ const moveToSelect      = document.getElementById("moveToSelect");
 
 const createNewPalletBtn = document.getElementById("createNewPalletBtn");
 const createPalletForm = document.getElementById("createPalletForm");
+
+// Disable "Spara pall" från början
+createSaveBtn.disabled = true;
+createSaveBtn.classList.add("disabled");
 
 
 // 3️⃣ Datastrukturer
@@ -111,14 +129,19 @@ createNewPalletBtn?.addEventListener("click", async () => {
   setMsg(createSaveMsg, "");
 
   try {
-    const newId = await createNewPallet();
+    // Hämtar nästa lediga ID, men skapar INTE pallen
+    const newId = await reservePalletId();
+
     createPallIdInput.value = newId;
     createContentsInput.value = "";
+    createSaveBtn.disabled = true;
+    createSaveBtn.classList.add("disabled");
     createPalletForm.style.display = "block";
     createContentsInput.focus();
+
   } catch (err) {
     console.error(err);
-    setMsg(createSaveMsg, "❌ Kunde inte skapa pall.", "muted err");
+    setMsg(createSaveMsg, "❌ Kunde inte reservera pall-ID.", "muted err");
   }
 });
 
@@ -129,14 +152,45 @@ createSaveBtn?.addEventListener("click", async () => {
   const contents = createContentsInput.value.trim();
   const who = auth.currentUser?.displayName || "okänd";
 
-  if (!contents) {
-    return setMsg(createSaveMsg, "❌ Du måste ange innehåll.", "muted err");
+  // 🔥 Robust innehållskontroll
+  if (!contents || contents.length < 2) {
+    return setMsg(
+      createSaveMsg,
+      "❌ Du måste skriva vad som finns i pallen.",
+      "muted err"
+    );
   }
+  // Aktivera/inaktivera "Spara pall" beroende på innehåll
+createContentsInput?.addEventListener("input", () => {
+  const hasContent = createContentsInput.value.trim().length >= 2;
 
-  await setDoc(doc(db, "pallets", id), { contents, who, createdDate: today() }, { merge: true });
-  await logAction("Skapade pall", { pallId: id, contents });
-  setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "ok");
+  createSaveBtn.disabled = !hasContent;
+
+  if (hasContent) {
+    createSaveBtn.classList.remove("disabled");
+  } else {
+    createSaveBtn.classList.add("disabled");
+  }
 });
+
+
+  try {
+    // 👇 Skapar pallen i Firestore + tar bort ID från poolen
+    await createPalletInFirestore(id, {
+      contents,
+      who,
+      createdDate: today()
+    });
+
+    await logAction("Skapade pall", { pallId: id, contents });
+    setMsg(createSaveMsg, `✅ Pall ${id} skapad.`, "ok");
+
+  } catch (err) {
+    console.error(err);
+    setMsg(createSaveMsg, "❌ Kunde inte spara pallen.", "muted err");
+  }
+});
+
 
 
 // 2. Tilldela pall till plats

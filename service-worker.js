@@ -1,4 +1,4 @@
-const CACHE_NAME = "lagerapp-cache-v25";
+const CACHE_NAME = "lagerapp-cache-v26";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
