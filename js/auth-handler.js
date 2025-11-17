@@ -16,7 +16,7 @@ import {
 
 import { startApp } from './app-logic.js';
 
-
+/*
 async function generateAvailableIds() {
   const db = getFirestore();
   for (let i = 1; i <= 999; i++) {
@@ -28,7 +28,7 @@ console.log("TEST: generatorn laddades!");
 
 // KÖR GENERERINGEN EN GÅNG
 generateAvailableIds();
-
+*/
 // ================================
 // Startpunkt – vänta på Firebase Auth
 // ================================
