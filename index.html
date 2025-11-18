@@ -121,8 +121,8 @@
 
 <body>
   <header>
-    <h1>Lagerapp (PWA)</h1>
-    <div class="muted">1) Skapa pall → 2) Tilldela plats → 3) Sök/visa → 4) Flytta</div>
+    <h1>Lagervy</h1>
+    <div class="muted"></div>
   </header>
 
   <!-- Här ligger all HTML-struktur -->
@@ -186,15 +186,20 @@
     <div id="moveMsg" class="muted"></div>
   </section>
 
-  <!-- Sektion 6: Export / Import -->
+<!-- Sektion 6: Redigera pall -->
   <section class="card">
-    <h2>Export/Import</h2>
-    <button id="exportBtn">Exportera data (JSON)</button>
-    <label for="importInput">Importera data (JSON-fil)</label>
-    <input id="importInput" type="file" accept="application/json" />
-    <div class="muted">Export/Import hämtar & återställer lagret.</div>
+    <h2>6. Redigera pall</h2>
+    <label for="editPallIdInput">Pall-ID</label>
+    <input id="editPallIdInput" type="text" />
+    <button id="editSearchBtn">Sök</button>
+    <div id="editArea" style="display:none; margin-top:1rem;">
+      <label for="editContentsInput">Innehåll</label>
+      <textarea id="editContentsInput" rows="3"></textarea>
+      <button id="editSaveBtn" class="save-btn">Spara ändringar</button>
+      <div id="editMsg" class="muted"></div>
+    </div>
   </section>
-
+ 
   <!-- === Ladda modulerna@ === -->
     <script type="module" src="./js/firebase-setup.js"></script>
     <script type="module" src="./js/ui-helper.js"></script>

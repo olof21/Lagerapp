@@ -68,6 +68,14 @@ const moveToSelect      = document.getElementById("moveToSelect");
 const createNewPalletBtn = document.getElementById("createNewPalletBtn");
 const createPalletForm = document.getElementById("createPalletForm");
 
+// Till "Redigera Pall"
+const editPallIdInput = document.getElementById("editPallIdInput");
+const editSearchBtn = document.getElementById("editSearchBtn");
+const editArea = document.getElementById("editArea");
+const editContentsInput = document.getElementById("editContentsInput");
+const editSaveBtn = document.getElementById("editSaveBtn");
+const editMsg = document.getElementById("editMsg");
+
 // Disable "Spara pall" från början
 createSaveBtn.disabled = true;
 createSaveBtn.classList.add("disabled");
@@ -363,83 +371,6 @@ searchBtn?.addEventListener("click", () => {
     </div>`).join("");
 });
 
-
-// 7. Exportera data
-exportBtn?.removeAttribute("disabled");
-exportBtn?.addEventListener("click", async () => {
-  setMsg(moveMsg, "");
-
-  try {
-    const [palSnap, locSnap] = await Promise.all([
-      getDocs(collection(db, "pallets")),
-      getDocs(collection(db, "locations"))
-    ]);
-
-    const palletsOut = {};
-    palSnap.forEach(d => palletsOut[d.id] = d.data());
-
-    const locationsOut = {};
-    locSnap.forEach(d => locationsOut[d.id] = d.data());
-
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      pallets: palletsOut,
-      locations: locationsOut
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `lagerapp-backup-${today()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-
-  } catch (e) {
-    setMsg(moveMsg, `❌ Export misslyckades: ${e.message}`, "muted err");
-  }
-});
-
-
-// 8. Importera data
-importInput?.removeAttribute("disabled");
-importInput?.addEventListener("change", async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  setMsg(moveMsg, "⏳ Importerar…");
-
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-
-    const palletsIn = data.pallets || {};
-    const locationsIn = data.locations || {};
-
-    const writes = [];
-    for (const [id, val] of Object.entries(palletsIn)) writes.push({ col: "pallets", id, val });
-    for (const [id, val] of Object.entries(locationsIn)) writes.push({ col: "locations", id, val });
-
-    const chunks = [];
-    const LIMIT = 400;
-    for (let i = 0; i < writes.length; i += LIMIT) {
-      chunks.push(writes.slice(i, i + LIMIT));
-    }
-
-    for (const chunk of chunks) {
-      const batch = writeBatch(db);
-      chunk.forEach(w => batch.set(doc(db, w.col, w.id), w.val));
-      await batch.commit();
-    }
-
-    setMsg(moveMsg, `✅ Import klar: ${Object.keys(palletsIn).length} pallar, ${Object.keys(locationsIn).length} platser.`, "ok");
-    e.target.value = "";
-
-  } catch (err) {
-    setMsg(moveMsg, `❌ Import misslyckades: ${err.message}`, "muted err");
-  }
-});
-
-
 // === UI-funktioner (städade, korrekta) ===
 
 // Tilldela plats
@@ -501,6 +432,69 @@ function fillMoveToSelect(placeObjects) {
     moveToSelect.appendChild(opt);
   });
 }
+
+// Redigera pall
+editSearchBtn?.addEventListener("click", async () => {
+  setMsg(editMsg, "");
+
+  const id = editPallIdInput.value.trim();
+
+  if (!id) {
+    return setMsg(editMsg, "❌ Ange ett pall-ID.", "muted err");
+  }
+
+  try {
+    const ref = doc(db, "pallets", id);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      editArea.style.display = "none";
+      return setMsg(editMsg, "❌ Det pall-ID:t finns inte.", "muted err");
+    }
+
+    // Fyll textfältet med befintligt innehåll
+    const data = snap.data();
+    editContentsInput.value = data.contents || "";
+
+    // Visa redigeringsdelen
+    editArea.style.display = "block";
+    editContentsInput.focus();
+
+  } catch (err) {
+    console.error(err);
+    setMsg(editMsg, "❌ Kunde inte läsa pall.", "muted err");
+  }
+});
+
+// Spara ändringar
+editSaveBtn?.addEventListener("click", async () => {
+  setMsg(editMsg, "");
+
+  const id = editPallIdInput.value.trim();
+  const contents = editContentsInput.value.trim();
+  const who = auth.currentUser?.displayName || "okänd";
+
+  if (!contents || contents.length < 2) {
+    return setMsg(editMsg, "❌ Innehållet är för kort.", "muted err");
+  }
+
+  try {
+    await setDoc(
+      doc(db, "pallets", id),
+      { contents, who, updatedDate: today() },
+      { merge: true }
+    );
+
+    await logAction("Redigerade pall", { pallId: id, contents });
+
+    setMsg(editMsg, `✅ Pall ${id} uppdaterad!`, "ok");
+
+  } catch (err) {
+    console.error(err);
+    setMsg(editMsg, "❌ Kunde inte spara ändringarna.", "muted err");
+  }
+});
+
 
 // Inspektera
 function fillInspectSelect(placeObjects) {
