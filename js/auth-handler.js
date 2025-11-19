@@ -1,6 +1,6 @@
 // Hanterar inloggning, namn och användarregistrering
 
-import { auth } from "./firebase-setup.js";
+import { db, auth } from "./firebase-setup.js";
 import { 
   signInAnonymously, 
   onAuthStateChanged, 

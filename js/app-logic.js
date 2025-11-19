@@ -4,7 +4,7 @@
 import { auth, db } from "./firebase-setup.js";
 import { setMsg, today } from "./ui-helper.js";
 import { 
-  doc, getDoc, setDoc, onSnapshot, writeBatch, runTransaction, collection 
+  doc, getDoc, setDoc, onSnapshot, writeBatch, runTransaction, collection, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 import { logAction } from "./logger.js";
 import { initAuth } from './auth-handler.js';
@@ -132,12 +132,25 @@ onSnapshot(collection(db, "locations"), (snap) => {
 // === Funktioner ===
 
 
-// 1. Skapa ny pall
+// ================================
+//  TIMESTAMP FORMATTER
+// ================================
+function formatTimestamp(ts) {
+  if (!ts) return "";
+  const date = ts.toDate();
+  const d = date.toISOString().slice(0, 10); // YYYY-MM-DD
+  const t = date.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+  return `${d} kl ${t}`;
+}
+
+// ================================
+// 1. SKAPA NY PALL
+// ================================
 createNewPalletBtn?.addEventListener("click", async () => {
   setMsg(createSaveMsg, "");
 
   try {
-    // Hämtar nästa lediga ID, men skapar INTE pallen
+    // Reserv/ta bort ID från poolen
     const newId = await reservePalletId();
 
     createPallIdInput.value = newId;
@@ -153,6 +166,12 @@ createNewPalletBtn?.addEventListener("click", async () => {
   }
 });
 
+createContentsInput?.addEventListener("input", () => {
+  const hasContent = createContentsInput.value.trim().length >= 2;
+  createSaveBtn.disabled = !hasContent;
+  createSaveBtn.classList.toggle("disabled", !hasContent);
+});
+
 createSaveBtn?.addEventListener("click", async () => {
   setMsg(createSaveMsg, "");
 
@@ -160,34 +179,16 @@ createSaveBtn?.addEventListener("click", async () => {
   const contents = createContentsInput.value.trim();
   const who = auth.currentUser?.displayName || "okänd";
 
-  // 🔥 Robust innehållskontroll
   if (!contents || contents.length < 2) {
-    return setMsg(
-      createSaveMsg,
-      "❌ Du måste skriva vad som finns i pallen.",
-      "muted err"
-    );
+    return setMsg(createSaveMsg, "❌ Du måste skriva vad som finns i pallen.", "muted err");
   }
-  // Aktivera/inaktivera "Spara pall" beroende på innehåll
-createContentsInput?.addEventListener("input", () => {
-  const hasContent = createContentsInput.value.trim().length >= 2;
-
-  createSaveBtn.disabled = !hasContent;
-
-  if (hasContent) {
-    createSaveBtn.classList.remove("disabled");
-  } else {
-    createSaveBtn.classList.add("disabled");
-  }
-});
-
 
   try {
-    // 👇 Skapar pallen i Firestore + tar bort ID från poolen
+    // Skapa pallen i Firestore
     await createPalletInFirestore(id, {
       contents,
       who,
-      createdDate: today()
+      createdAt: serverTimestamp()
     });
 
     await logAction("Skapade pall", { pallId: id, contents });
@@ -200,25 +201,20 @@ createContentsInput?.addEventListener("input", () => {
 });
 
 
-
-// 2. Tilldela pall till plats
+// ================================
+// 2. TILLDELA PALL TILL PLATS
+// ================================
 async function assignPalletToPlace(pallId, placeId) {
   const ref = doc(db, "locations", placeId);
   const snap = await getDoc(ref);
-
-  // Om dokument saknas → platsen är ledig
   const data = snap.exists() ? snap.data() : {};
 
-  // Upptagen plats?
-  if (data.pallId) {
-    throw new Error("Platsen är redan upptagen");
-  }
+  if (data.pallId) throw new Error("Platsen är redan upptagen");
 
-  // Spara ny pall på platsen
-  await setDoc(ref, { 
-    pallId, 
-    who: auth.currentUser?.displayName || "okänd", 
-    updated: today() 
+  await setDoc(ref, {
+    pallId,
+    who: auth.currentUser?.displayName || "okänd",
+    updatedAt: serverTimestamp()
   }, { merge: true });
 }
 
@@ -229,7 +225,7 @@ assignSaveBtn?.addEventListener("click", async () => {
   const placeId = assignPlaceSelect.value;
 
   if (!pallId) {
-    return setMsg(assignSaveMsg, "❌ Du måste ange Pall-ID.", "muted err");
+    return setMsg(assignSaveMsg, "❌ Ange Pall-ID.", "muted err");
   }
 
   const pSnap = await getDoc(doc(db, "pallets", pallId));
@@ -247,7 +243,9 @@ assignSaveBtn?.addEventListener("click", async () => {
 });
 
 
-// 3. Flytta pall
+// ================================
+// 3. FLYTTA PALL
+// ================================
 moveBtn?.addEventListener("click", async () => {
   setMsg(moveMsg, "");
 
@@ -262,32 +260,36 @@ moveBtn?.addEventListener("click", async () => {
     await runTransaction(db, async (tx) => {
       const fromRef = doc(db, "locations", fromId);
       const toRef = doc(db, "locations", toId);
+
       const fromSnap = await tx.get(fromRef);
       const toSnap = await tx.get(toRef);
+
       const fromData = fromSnap.data() || {};
       const toData = toSnap.data() || {};
 
       if (!fromData.pallId) throw new Error(`Ingen pall på ${fromId}.`);
       if (toData.pallId) throw new Error(`Till-platsen ${toId} är upptagen (${toData.pallId}).`);
 
-      tx.set(fromRef, { pallId: "", who, updated: today() });
-      tx.set(toRef, { pallId: fromData.pallId, who, updated: today() });
+      tx.set(fromRef, { pallId: "", who, updatedAt: serverTimestamp() });
+      tx.set(toRef, { pallId: fromData.pallId, who, updatedAt: serverTimestamp() });
     });
 
     await logAction("Flyttade pall", { from: fromId, to: toId });
     setMsg(moveMsg, `✅ Flytt klar: ${fromId} → ${toId}`, "ok");
+
   } catch (e) {
     setMsg(moveMsg, `❌ ${e.message}`, "muted err");
   }
 });
 
 
-// 4. Töm plats
+// ================================
+// 4. TÖM PLATS
+// ================================
 clearFromBtn?.addEventListener("click", async () => {
   setMsg(moveMsg, "");
 
-  const fromId = moveFromSelect?.value;
-  const who = moveWhoInput?.value.trim();
+  const fromId = moveFromSelect.value;
 
   if (!fromId) return setMsg(moveMsg, "❌ Välj 'Från'-plats.", "muted err");
 
@@ -295,38 +297,52 @@ clearFromBtn?.addEventListener("click", async () => {
   const snap = await getDoc(ref);
   const had = snap.exists() && snap.data().pallId;
 
-  await setDoc(ref, { pallId: "", who: who || (snap.data()?.who || ""), updated: today() });
+  await setDoc(ref, {
+    pallId: "",
+    who: auth.currentUser?.displayName || "okänd",
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+
   await logAction("Tömde plats", { placeId: fromId });
 
   setMsg(moveMsg, had ? `🧹 Tömde ${fromId}.` : `ℹ️ ${fromId} var redan tom.`, "muted");
 });
 
 
-// 5. Inspektera plats
+// ================================
+// 5. INSPEKTERA
+// ================================
 inspectBtn?.addEventListener("click", async () => {
   const placeId = inspectSelect.value;
   const loc = locations[placeId];
 
   if (!loc || !loc.pallId) {
-    inspectResult.innerHTML = `<div class="result-item"><strong>${placeId}</strong><div class="muted">Ingen pall registrerad här.</div></div>`;
+    inspectResult.innerHTML = `
+      <div class="result-item">
+        <strong>${placeId}</strong>
+        <div class="muted">Ingen pall registrerad här.</div>
+      </div>`;
     return;
   }
 
   const p = pallets[loc.pallId] || {};
+
   inspectResult.innerHTML = `
     <div class="result-item">
       <strong>${placeId}</strong>
       <div>Pall-ID: ${loc.pallId}</div>
       <div>Innehåll: ${p.contents || "-"}</div>
       <div class="muted">
-        Packad av ${p.who || "okänd"} ${p.createdDate ? "den " + p.createdDate : ""}<br/>
-        Inkörd av ${loc.who || "okänd"} ${loc.updated ? "den " + loc.updated : ""}
+        Packad av ${p.who} den ${formatTimestamp(p.createdAt)}<br/>
+        Flyttad av ${loc.who} den ${formatTimestamp(loc.updatedAt)}
       </div>
     </div>`;
 });
 
 
-// 6. Sök
+// ================================
+// 6. SÖK
+// ================================
 searchBtn?.addEventListener("click", () => {
   const q = (searchInput.value || "").trim().toLowerCase();
   if (!q) {
@@ -347,9 +363,9 @@ searchBtn?.addEventListener("click", () => {
         pallId: loc.pallId,
         contents: p.contents,
         packedBy: p.who,
-        packedDate: p.createdDate,
+        createdAt: p.createdAt,
         storedBy: loc.who,
-        storedDate: loc.updated
+        updatedAt: loc.updatedAt
       });
     }
   }
@@ -365,83 +381,22 @@ searchBtn?.addEventListener("click", () => {
       <div>Pall-ID: ${h.pallId}</div>
       <div>Innehåll: ${h.contents}</div>
       <div class="muted">
-        Packad av ${h.packedBy || "okänd"} ${h.packedDate ? "den " + h.packedDate : ""}<br/>
-        Inkörd av ${h.storedBy || "okänd"} ${h.storedDate ? "den " + h.storedDate : ""}
+        Packad av ${h.packedBy} den ${formatTimestamp(h.createdAt)}<br/>
+        FLyttad av ${h.storedBy} den ${formatTimestamp(h.updatedAt)}
       </div>
-    </div>`).join("");
+    </div>
+  `).join("");
 });
 
-// === UI-funktioner (städade, korrekta) ===
 
-// Tilldela plats
-function fillAssignPlaceSelect(placeObjects) {
-  assignPlaceSelect.innerHTML = "";
-
-  placeObjects.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-
-    if (p.pallId) {
-      opt.textContent = p.id;
-      opt.disabled = true;
-      opt.classList.add("place-occupied");
-    } else {
-      opt.textContent = p.id;
-    }
-
-    assignPlaceSelect.appendChild(opt);
-  });
-}
-
-// Snabbflytt — FRÅN
-function fillMoveFromSelect(placeObjects) {
-  moveFromSelect.innerHTML = "";
-
-  placeObjects.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-
-    if (!p.pallId) {
-      opt.textContent = p.id;
-      opt.disabled = true;
-      opt.classList.add("place-empty");
-    } else {
-      opt.textContent = `${p.id} (${p.pallId})`;
-    }
-
-    moveFromSelect.appendChild(opt);
-  });
-}
-
-// Snabbflytt — TILL
-function fillMoveToSelect(placeObjects) {
-  moveToSelect.innerHTML = "";
-
-  placeObjects.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-
-    if (p.pallId) {
-      opt.textContent = p.id;
-      opt.disabled = true;
-      opt.classList.add("place-occupied");
-    } else {
-      opt.textContent = p.id;
-    }
-
-    moveToSelect.appendChild(opt);
-  });
-}
-
+// ================================
 // Redigera pall
+// ================================
 editSearchBtn?.addEventListener("click", async () => {
   setMsg(editMsg, "");
 
   const id = editPallIdInput.value.trim();
-
-  if (!id) {
-    return setMsg(editMsg, "❌ Ange ett pall-ID.", "muted err");
-  }
+  if (!id) return setMsg(editMsg, "❌ Ange ett pall-ID.", "muted err");
 
   try {
     const ref = doc(db, "pallets", id);
@@ -452,11 +407,7 @@ editSearchBtn?.addEventListener("click", async () => {
       return setMsg(editMsg, "❌ Det pall-ID:t finns inte.", "muted err");
     }
 
-    // Fyll textfältet med befintligt innehåll
-    const data = snap.data();
-    editContentsInput.value = data.contents || "";
-
-    // Visa redigeringsdelen
+    editContentsInput.value = snap.data().contents || "";
     editArea.style.display = "block";
     editContentsInput.focus();
 
@@ -466,7 +417,6 @@ editSearchBtn?.addEventListener("click", async () => {
   }
 });
 
-// Spara ändringar
 editSaveBtn?.addEventListener("click", async () => {
   setMsg(editMsg, "");
 
@@ -479,14 +429,13 @@ editSaveBtn?.addEventListener("click", async () => {
   }
 
   try {
-    await setDoc(
-      doc(db, "pallets", id),
-      { contents, who, updatedDate: today() },
-      { merge: true }
-    );
+    await setDoc(doc(db, "pallets", id), {
+      contents,
+      who,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
 
     await logAction("Redigerade pall", { pallId: id, contents });
-
     setMsg(editMsg, `✅ Pall ${id} uppdaterad!`, "ok");
 
   } catch (err) {
@@ -496,10 +445,59 @@ editSaveBtn?.addEventListener("click", async () => {
 });
 
 
-// Inspektera
+// ================================
+// Select-fyllare (ingen ändring behövs här)
+// ================================
+function fillAssignPlaceSelect(placeObjects) {
+  assignPlaceSelect.innerHTML = "";
+  placeObjects.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    if (p.pallId) {
+      opt.textContent = p.id;
+      opt.disabled = true;
+      opt.classList.add("place-occupied");
+    } else {
+      opt.textContent = p.id;
+    }
+    assignPlaceSelect.appendChild(opt);
+  });
+}
+
+function fillMoveFromSelect(placeObjects) {
+  moveFromSelect.innerHTML = "";
+  placeObjects.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    if (!p.pallId) {
+      opt.textContent = p.id;
+      opt.disabled = true;
+      opt.classList.add("place-empty");
+    } else {
+      opt.textContent = `${p.id} (${p.pallId})`;
+    }
+    moveFromSelect.appendChild(opt);
+  });
+}
+
+function fillMoveToSelect(placeObjects) {
+  moveToSelect.innerHTML = "";
+  placeObjects.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    if (p.pallId) {
+      opt.textContent = p.id;
+      opt.disabled = true;
+      opt.classList.add("place-occupied");
+    } else {
+      opt.textContent = p.id;
+    }
+    moveToSelect.appendChild(opt);
+  });
+}
+
 function fillInspectSelect(placeObjects) {
   inspectSelect.innerHTML = "";
-
   placeObjects.forEach(p => {
     const opt = document.createElement("option");
     opt.value = p.id;
@@ -515,4 +513,3 @@ function fillInspectSelect(placeObjects) {
     inspectSelect.appendChild(opt);
   });
 }
-

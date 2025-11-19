@@ -8,7 +8,7 @@ import { getAuth, signInAnonymously,
     onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import {
 getFirestore, enableIndexedDbPersistence,
-doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch, runTransaction
+doc, getDoc, setDoc, getDocs, collection, onSnapshot, writeBatch, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // === Firebase Setup ===
