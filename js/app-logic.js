@@ -79,6 +79,10 @@ const editContentsInput = document.getElementById("editContentsInput");
 const editSaveBtn = document.getElementById("editSaveBtn");
 const editMsg = document.getElementById("editMsg");
 
+const clearPalletInput = document.getElementById("clearPalletInput");
+const clearPalletBtn = document.getElementById("clearPalletBtn");
+const clearPalletMsg = document.getElementById("clearPalletMsg");
+
 // Disable "Spara pall" från början
 createSaveBtn.disabled = true;
 createSaveBtn.classList.add("disabled");
@@ -178,7 +182,7 @@ createSaveBtn?.addEventListener("click", async () => {
 
   const id = createPallIdInput.value.trim();
   const contents = createContentsInput.value.trim();
-  const who = auth.currentUser?.displayName || "okänd";
+  const who = localStorage.getItem("lagerUserName")
 
   if (!contents || contents.length < 2) {
     return setMsg(createSaveMsg, "❌ Du måste skriva vad som finns i pallen.", "muted err");
@@ -219,7 +223,7 @@ async function assignPalletToPlace(pallId, placeId) {
 
   await setDoc(ref, {
     pallar,
-    who: auth.currentUser?.displayName || "okänd",
+    who: localStorage.getItem("lagerUserName"),
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
@@ -257,7 +261,7 @@ moveBtn?.addEventListener("click", async () => {
 
   const pallId = (movePalletInput?.value || "").trim();
   const toPlace = moveToSelect?.value;
-  const who = auth.currentUser?.displayName || "okänd";
+  const who = localStorage.getItem("lagerUserName");
 
   if (!pallId) {
     return setMsg(moveMsg, "❌ Skriv pall-ID.", "muted err");
@@ -324,26 +328,53 @@ moveBtn?.addEventListener("click", async () => {
 // ================================
 // 4. TÖM PLATS
 // ================================
-clearFromBtn?.addEventListener("click", async () => {
-  setMsg(moveMsg, "");
+// ================================
+// 7. TÖM PALL (ta bort pallId från plats)
+// ================================
+clearPalletBtn?.addEventListener("click", async () => {
+  setMsg(clearPalletMsg, "");
 
-  const fromId = moveFromSelect.value;
+  const pallId = (clearPalletInput.value || "").trim();
+  const who = auth.currentUser?.displayName || "okänd";
 
-  if (!fromId) return setMsg(moveMsg, "❌ Välj 'Från'-plats.", "muted err");
+  if (!pallId) {
+    return setMsg(clearPalletMsg, "❌ Skriv ett pall-ID.", "muted err");
+  }
 
-  const ref = doc(db, "locations", fromId);
-  const snap = await getDoc(ref);
-  const had = snap.exists() && snap.data().pallId;
+  // hitta vilken plats pallen är på
+  const placeId = findPlaceOfPallet(pallId);
 
-  await setDoc(ref, {
-    pallId: "",
-    who: auth.currentUser?.displayName || "okänd",
-    updatedAt: serverTimestamp()
-  }, { merge: true });
+  if (!placeId) {
+    return setMsg(clearPalletMsg, `❌ Hittar inte pall ${pallId} på någon plats.`, "muted err");
+  }
 
-  await logAction("Tömde plats", { placeId: fromId });
+  try {
+    await runTransaction(db, async (tx) => {
+      const ref = doc(db, "locations", placeId);
+      const snap = await tx.get(ref);
 
-  setMsg(moveMsg, had ? `🧹 Tömde ${fromId}.` : `ℹ️ ${fromId} var redan tom.`, "muted");
+      const data = snap.data() || {};
+      const arr = data.pallar || [];
+
+      // ta bort
+      const newArr = arr.filter(id => id !== pallId);
+
+      tx.set(ref, {
+        pallar: newArr,
+        who,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    });
+
+    await logAction("Tömde pall", { pallId, placeId });
+
+    setMsg(clearPalletMsg, `🧹 Pall ${pallId} togs bort från ${placeId}.`, "ok");
+    clearPalletInput.value = "";
+
+  } catch (err) {
+    console.error(err);
+    setMsg(clearPalletMsg, "❌ Kunde inte tömma pallen.", "muted err");
+  }
 });
 
 
@@ -486,7 +517,7 @@ editSaveBtn?.addEventListener("click", async () => {
 
   const id = editPallIdInput.value.trim();
   const contents = editContentsInput.value.trim();
-  const who = auth.currentUser?.displayName || "okänd";
+  const who = localStorage.getItem("lagerUserName");
 
   if (!contents || contents.length < 2) {
     return setMsg(editMsg, "❌ Innehållet är för kort.", "muted err");
