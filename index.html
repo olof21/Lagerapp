@@ -178,12 +178,13 @@
 
   <!-- Sektion 5: Flytta pall -->
   <section class="card">
-    <h2>5. Snabbflytt</h2>
-    <label for="moveFromSelect">Från plats</label><select id="moveFromSelect"></select>
-    <label for="moveToSelect">Till plats</label><select id="moveToSelect"></select>
-    <button id="moveBtn">Flytta pall</button>
-    <button id="clearFromBtn">Töm 'Från'-plats</button>
-    <div id="moveMsg" class="muted"></div>
+    <h3>Flytta pall</h3>
+    <label for="movePalletInput">Pall-ID</label>
+    <input id="movePalletInput" type="text" placeholder="Skriv pall-ID">
+    <label for="moveToSelect" style="margin-top: 1rem;">Flytta till plats</label>
+    <select id="moveToSelect"></select>
+    <button id="moveBtn" style="margin-top: 1rem;">Flytta</button>
+    <div id="moveMsg" class="muted" style="margin-top: 0.5rem;"></div>
   </section>
 
 <!-- Sektion 6: Redigera pall -->
@@ -206,7 +207,8 @@
     <script type="module" src="./js/logger.js"></script>
     <script type="module" src="./js/auth-handler.js"></script>
     <script type="module" src="./js/app-logic.js"></script>
-<!-- <script type="module" src="./js/dev-generate-ids.js"></script> -->
+    <!-- <script type="module" src="./js/admin-init.js"></script> -->
+    <!-- <script type="module" src="./js/dev-generate-ids.js"></script> -->
 
   <!-- === Service Worker === -->
   <script>

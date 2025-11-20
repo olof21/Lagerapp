@@ -9,6 +9,8 @@ import {
 import { logAction } from "./logger.js";
 import { initAuth } from './auth-handler.js';
 import { reservePalletId, createPalletInFirestore } from "./pallet-handler.js";
+import { places } from "./places-config.js";
+
 
 // Start
 initAuth(() => {
@@ -62,11 +64,12 @@ const exportBtn         = document.getElementById("exportBtn");
 const importInput       = document.getElementById("importInput");
 
 const assignPlaceSelect = document.getElementById("assignPlaceSelect");
-const moveFromSelect    = document.getElementById("moveFromSelect");
 const moveToSelect      = document.getElementById("moveToSelect");
 
 const createNewPalletBtn = document.getElementById("createNewPalletBtn");
 const createPalletForm = document.getElementById("createPalletForm");
+const movePalletInput = document.getElementById("movePalletInput");
+
 
 // Till "Redigera Pall"
 const editPallIdInput = document.getElementById("editPallIdInput");
@@ -85,19 +88,17 @@ createSaveBtn.classList.add("disabled");
 const pallets = {};
 const locations = {};
 
+// Hitta platser som sedan används
+function findPlaceOfPallet(pallId) {
+  for (const [placeId, loc] of Object.entries(locations)) {
+    if ((loc.pallar || []).includes(pallId)) {
+      return placeId;
+    }
+  }
+  return null;
+}
 
-// 4️⃣ Skapa statisk lista med alla platser
-const places = [];
-(function gen() {
-  const S = ["L", "R"];
-  for (const side of S)
-    for (let r = 1; r <= 4; r++)
-      for (let c = 1; c <= 3; c++)
-        for (let h = 1; h <= 3; h++)
-          places.push(`${side}-R${r}-C${c}-H${h}`);
-})();
-console.log("✅ Platser genererade:", places.length, "ex:", places.slice(0, 5));
-
+// Här låg koden för const places med de första 72 platserna
 
 // 5️⃣ Realtidsuppdatering — pallets
 onSnapshot(collection(db, "pallets"), (snap) => {
@@ -123,9 +124,9 @@ onSnapshot(collection(db, "locations"), (snap) => {
 
   // Uppdatera dropdowns
   fillAssignPlaceSelect(placeObjects);
-  fillMoveFromSelect(placeObjects);
   fillMoveToSelect(placeObjects);
   fillInspectSelect(placeObjects);
+  fillSelect(moveToSelect, places);
 });
 
 
@@ -209,10 +210,15 @@ async function assignPalletToPlace(pallId, placeId) {
   const snap = await getDoc(ref);
   const data = snap.exists() ? snap.data() : {};
 
-  if (data.pallId) throw new Error("Platsen är redan upptagen");
+  const pallar = data.pallar || [];
+
+  // lägg till om den inte redan finns (skydd mot duplicering)
+  if (!pallar.includes(pallId)) {
+    pallar.push(pallId);
+  }
 
   await setDoc(ref, {
-    pallId,
+    pallar,
     who: auth.currentUser?.displayName || "okänd",
     updatedAt: serverTimestamp()
   }, { merge: true });
@@ -244,22 +250,38 @@ assignSaveBtn?.addEventListener("click", async () => {
 
 
 // ================================
-// 3. FLYTTA PALL
+// 3. FLYTTA PALL (pall-ID + plats)
 // ================================
 moveBtn?.addEventListener("click", async () => {
   setMsg(moveMsg, "");
 
-  const fromId = moveFromSelect?.value;
-  const toId = moveToSelect?.value;
+  const pallId = (movePalletInput?.value || "").trim();
+  const toPlace = moveToSelect?.value;
   const who = auth.currentUser?.displayName || "okänd";
 
-  if (!fromId || !toId) return setMsg(moveMsg, "❌ Välj både 'Från' och 'Till'.", "muted err");
-  if (fromId === toId) return setMsg(moveMsg, "❌ Samma plats.", "muted err");
+  if (!pallId) {
+    return setMsg(moveMsg, "❌ Skriv pall-ID.", "muted err");
+  }
+
+  if (!toPlace) {
+    return setMsg(moveMsg, "❌ Välj en plats.", "muted err");
+  }
+
+  // Hitta var pallen står
+  const fromPlace = findPlaceOfPallet(pallId);
+
+  if (!fromPlace) {
+    return setMsg(moveMsg, `❌ Pallen ${pallId} står inte på någon plats.`, "muted err");
+  }
+
+  if (fromPlace === toPlace) {
+    return setMsg(moveMsg, "❌ Pallen står redan där.", "muted err");
+  }
 
   try {
     await runTransaction(db, async (tx) => {
-      const fromRef = doc(db, "locations", fromId);
-      const toRef = doc(db, "locations", toId);
+      const fromRef = doc(db, "locations", fromPlace);
+      const toRef = doc(db, "locations", toPlace);
 
       const fromSnap = await tx.get(fromRef);
       const toSnap = await tx.get(toRef);
@@ -267,21 +289,37 @@ moveBtn?.addEventListener("click", async () => {
       const fromData = fromSnap.data() || {};
       const toData = toSnap.data() || {};
 
-      if (!fromData.pallId) throw new Error(`Ingen pall på ${fromId}.`);
-      if (toData.pallId) throw new Error(`Till-platsen ${toId} är upptagen (${toData.pallId}).`);
+      const fromArr = fromData.pallar || [];
+      const toArr = toData.pallar || [];
 
-      tx.set(fromRef, { pallId: "", who, updatedAt: serverTimestamp() });
-      tx.set(toRef, { pallId: fromData.pallId, who, updatedAt: serverTimestamp() });
+      // ta bort från gamla plats
+      const newFromArr = fromArr.filter(id => id !== pallId);
+
+      // lägg till på nya plats
+      const newToArr = toArr.includes(pallId) ? toArr : [...toArr, pallId];
+
+      // spara båda
+      tx.set(fromRef, {
+        pallar: newFromArr,
+        who,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      tx.set(toRef, {
+        pallar: newToArr,
+        who,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
     });
 
-    await logAction("Flyttade pall", { from: fromId, to: toId });
-    setMsg(moveMsg, `✅ Flytt klar: ${fromId} → ${toId}`, "ok");
+    await logAction("Flyttade pall", { pallId, from: fromPlace, to: toPlace });
+
+    setMsg(moveMsg, `✅ Pall ${pallId} flyttad: ${fromPlace} → ${toPlace}`, "ok");
 
   } catch (e) {
     setMsg(moveMsg, `❌ ${e.message}`, "muted err");
   }
 });
-
 
 // ================================
 // 4. TÖM PLATS
@@ -310,33 +348,48 @@ clearFromBtn?.addEventListener("click", async () => {
 
 
 // ================================
-// 5. INSPEKTERA
+// 5. INSPEKTERA (flera pallar per plats)
 // ================================
 inspectBtn?.addEventListener("click", async () => {
   const placeId = inspectSelect.value;
   const loc = locations[placeId];
 
-  if (!loc || !loc.pallId) {
+  if (!loc) {
     inspectResult.innerHTML = `
       <div class="result-item">
         <strong>${placeId}</strong>
-        <div class="muted">Ingen pall registrerad här.</div>
+        <div class="muted">Ingen data hittades för denna plats.</div>
       </div>`;
     return;
   }
 
-  const p = pallets[loc.pallId] || {};
+  const pallarPåPlats = loc.pallar || [];
 
-  inspectResult.innerHTML = `
-    <div class="result-item">
-      <strong>${placeId}</strong>
-      <div>Pall-ID: ${loc.pallId}</div>
-      <div>Innehåll: ${p.contents || "-"}</div>
-      <div class="muted">
-        Packad av ${p.who} den ${formatTimestamp(p.createdAt)}<br/>
-        Flyttad av ${loc.who} den ${formatTimestamp(loc.updatedAt)}
-      </div>
-    </div>`;
+  if (pallarPåPlats.length === 0) {
+    inspectResult.innerHTML = `
+      <div class="result-item">
+        <strong>${placeId}</strong>
+        <div class="muted">Det finns inga pallar på denna plats.</div>
+      </div>`;
+    return;
+  }
+
+  // Skapa HTML för varje pall på platsen
+  const html = pallarPåPlats.map(pallId => {
+    const p = pallets[pallId] || {};
+    return `
+      <div class="result-item">
+        <strong>${placeId}</strong>
+        <div>Pall-ID: ${pallId}</div>
+        <div>Innehåll: ${p.contents || "-"}</div>
+        <div class="muted">
+          Packad av ${p.who || "okänd"} den ${formatTimestamp(p.createdAt)}<br/>
+          Flyttad av ${loc.who || "okänd"} den ${formatTimestamp(loc.updatedAt)}
+        </div>
+      </div>`;
+  }).join("");
+
+  inspectResult.innerHTML = html;
 });
 
 
@@ -350,17 +403,27 @@ searchBtn?.addEventListener("click", () => {
     return;
   }
 
+  // ⭐ vilka pall-id:n matchar söktermen?
   const matching = Object.entries(pallets)
     .filter(([id, info]) => (info?.contents || "").toLowerCase().includes(q))
     .map(([id]) => id);
 
   const hits = [];
+
+  // ⭐ loopa genom alla platser i locations
   for (const [placeId, loc] of Object.entries(locations)) {
-    if (matching.includes(loc.pallId)) {
-      const p = pallets[loc.pallId] || {};
+    const pallarPåPlats = loc.pallar || [];
+
+    // ⭐ vilka pallar på denna plats matchar söktermen?
+    const matchingPallar = pallarPåPlats.filter(id => matching.includes(id));
+
+    // ⭐ skapa en träff per pall
+    for (const pallId of matchingPallar) {
+      const p = pallets[pallId] || {};
+
       hits.push({
         placeId,
-        pallId: loc.pallId,
+        pallId,
         contents: p.contents,
         packedBy: p.who,
         createdAt: p.createdAt,
@@ -375,6 +438,7 @@ searchBtn?.addEventListener("click", () => {
     return;
   }
 
+  // ⭐ visa resultat
   searchResults.innerHTML = hits.map(h => `
     <div class="result-item">
       <strong>${h.placeId}</strong>
@@ -382,7 +446,7 @@ searchBtn?.addEventListener("click", () => {
       <div>Innehåll: ${h.contents}</div>
       <div class="muted">
         Packad av ${h.packedBy} den ${formatTimestamp(h.createdAt)}<br/>
-        FLyttad av ${h.storedBy} den ${formatTimestamp(h.updatedAt)}
+        Flyttad av ${h.storedBy} den ${formatTimestamp(h.updatedAt)}
       </div>
     </div>
   `).join("");
@@ -464,22 +528,6 @@ function fillAssignPlaceSelect(placeObjects) {
   });
 }
 
-function fillMoveFromSelect(placeObjects) {
-  moveFromSelect.innerHTML = "";
-  placeObjects.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    if (!p.pallId) {
-      opt.textContent = p.id;
-      opt.disabled = true;
-      opt.classList.add("place-empty");
-    } else {
-      opt.textContent = `${p.id} (${p.pallId})`;
-    }
-    moveFromSelect.appendChild(opt);
-  });
-}
-
 function fillMoveToSelect(placeObjects) {
   moveToSelect.innerHTML = "";
   placeObjects.forEach(p => {
@@ -511,5 +559,17 @@ function fillInspectSelect(placeObjects) {
     }
 
     inspectSelect.appendChild(opt);
+  });
+}
+
+function fillSelect(selectEl, placeList) {
+  if (!selectEl) return;
+
+  selectEl.innerHTML = "";
+  placeList.forEach(placeId => {
+    const opt = document.createElement("option");
+    opt.value = placeId;
+    opt.textContent = placeId;
+    selectEl.appendChild(opt);
   });
 }
